@@ -8,12 +8,13 @@ from typing import Union, List, Optional
 from madml import tensor, xavier_uniform, zeros, zeros_like
 
 
-def _dim_fix(arr: List[int], arg_arr: Union[int, List[int]]):
-    def parse(x, pi):
+
+def _dim_fix(arr, arg_arr, pi):
+    def parse(x):
         return [x for _ in range(pi)] if isinstance(x, int) else [x[t] for t in range(pi)]
 
     if isinstance(arg_arr, int):
-        arg_arr = parse(arg_arr, len(arr))
+        arg_arr = parse(arg_arr)
     j = 0
     for i in range(len(arg_arr) - 1, len(arr)):
         arr[i] = arg_arr[j]
@@ -27,16 +28,16 @@ class _MaxPoolNd(Module):
     return_indices: bool
     ceil_mode: bool
 
-    def __init__(self, kernel_size: Union[int, List[int]], stride: Union[int, List[int]] = None,
+    def __init__(self, dims, kernel_size: Union[int, List[int]], stride: Union[int, List[int]] = None,
                  padding: Union[int, List[int]] = 0, dilation: Union[int, List[int]] = 1, return_indices: bool = False,
                  ceil_mode: bool = False) -> None:
         super(_MaxPoolNd, self).__init__()
         self.dims = 3
 
-        self.kernel_size = _dim_fix([1 for _ in range(self.dims)], kernel_size)
-        self.stride = _dim_fix([1 for _ in range(self.dims)], stride)
-        self.padding = _dim_fix([0 for _ in range(self.dims)], padding)
-        self.dilation = _dim_fix([1 for _ in range(self.dims)], dilation)
+        self.kernel_size = _dim_fix([1 for _ in range(self.dims)], kernel_size, dims)
+        self.stride = _dim_fix([1 for _ in range(self.dims)], stride, dims)
+        self.padding = _dim_fix([0 for _ in range(self.dims)], padding, dims)
+        self.dilation = _dim_fix([1 for _ in range(self.dims)], dilation, dims)
         self.return_indices = return_indices
         self.ceil_mode = ceil_mode
         self._col = []
@@ -47,18 +48,15 @@ class _MaxPoolNd(Module):
         self.col = None
 
     def forward_cpu(self, x: tensor) -> tensor:
+        self.cache.append(x)
         if self._col == [] or self._vol == []:
-            if self._col == [] or self._vol == []:
-                self._col = [1 for _ in range(self.dims)]
-                self._vol = [1 for _ in range(self.dims)]
+            self._col = [1 for _ in range(self.dims)]
+            self._vol = [1 for _ in range(self.dims)]
 
-                for i in range(self.dims):
-                    self._col[i] = x.shape[i + 2] + 2 * self.padding[i] - self.dilation[i] * self.kernel_size[i] - 1
-                    self._col[i] /= self.stride[i]
-                    self._col[i] = int(self._col[i]) + 1
-                    self._vol[i] = x.shape[i + 2]
-            self.batch_size = x.shape[0] * x.shape[1]
-
+            for i in range(self.dims - 1, 0, -1):
+                self._col[i] = int((x.shape[i+2] + 2 * self.padding[i] - self.dilation[i] * (self.kernel_size[i] - 1) - 1) // self.stride[i]) + 1
+                self._vol[i] = x.shape[i + 2]
+            self.batch_size = x.shape[0]
         self._2col(x.host_data)
 
         max_idx = []
@@ -163,7 +161,7 @@ class MaxPool1d(_MaxPoolNd):
     def __init__(self, kernel_size: int, stride: Optional[int] = None,
                  padding: int = 0, dilation: int = 1,
                  return_indices: bool = False, ceil_mode: bool = False) -> None:
-        super(MaxPool1d, self).__init__(kernel_size, stride, padding, dilation, return_indices, ceil_mode)
+        super(MaxPool1d, self).__init__(1, kernel_size, stride, padding, dilation, return_indices, ceil_mode)
 
 
 class MaxPool2d(_MaxPoolNd):
@@ -175,7 +173,7 @@ class MaxPool2d(_MaxPoolNd):
     def __init__(self, kernel_size: Union[int, List[int]], stride: Optional[Union[int, List[int]]] = None,
                  padding: Union[int, List[int]] = 0, dilation: Union[int, List[int]] = 1,
                  return_indices: bool = False, ceil_mode: bool = False) -> None:
-        super(MaxPool2d, self).__init__(kernel_size, stride, padding, dilation, return_indices, ceil_mode)
+        super(MaxPool2d, self).__init__(2   , kernel_size, stride, padding, dilation, return_indices, ceil_mode)
 
 
 class MaxPool3d(_MaxPoolNd):
@@ -187,4 +185,4 @@ class MaxPool3d(_MaxPoolNd):
     def __init__(self, kernel_size: Union[int, List[int]], stride: Optional[Union[int, List[int]]] = None,
                  padding: Union[int, List[int]] = 0, dilation: Union[int, List[int]] = 1,
                  return_indices: bool = False, ceil_mode: bool = False) -> None:
-        super(MaxPool3d, self).__init__(kernel_size, stride, padding, dilation, return_indices, ceil_mode)
+        super(MaxPool3d, self).__init__(3, kernel_size, stride, padding, dilation, return_indices, ceil_mode)

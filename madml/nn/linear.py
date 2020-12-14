@@ -6,19 +6,28 @@ from __future__ import unicode_literals
 from .module import Module
 from madml import tensor, normal, zeros
 
-
 def matmul(x: tensor, w: tensor, y: tensor, use_grad: bool = False):
-    for m in range(x.shape[0]):
-        for n in range(w.shape[1]):
-            acc = 0
-            for k in range(w.shape[0]):
-                acc += x.host_data[m * w.shape[0] + k] * w.host_data[k * w.shape[1] + n]
-            if use_grad:
-                y.grad_data[m * w.shape[0] + n] = acc
-            else:
-                y.host_data[m * w.shape[0] + n] = acc
+    assert(x.shape[1] == w.shape[0])
 
-
+    if len(x.shape) == 2:
+        for b in range(x.shape[0]):
+            for m in range(x.shape[1]):
+                for n in range(w.shape[1]):
+                    if use_grad:
+                        y.grad_data[b * w.shape[1] + n] += x.host_data[b*x.shape[1] + m] * w.host_data[m * w.shape[1] + n]
+                    else:
+                        y.host_data[b * w.shape[1] + n] += x.host_data[b*x.shape[1] + m] * w.host_data[m * w.shape[1] + n]
+                    
+    elif len(x.shape) == 3:
+        for b in range(x.shape[0]):
+            for m in range(x.shape[1]):
+                for n in range(w.shape[1]):
+                    for k in range(w.shape[0]):
+                        if use_grad:
+                            y.grad_data[b * w.shape[1] + n] += x.host_data[b*x.shape[1] + m] * w.host_data[m * w.shape[1] + n]
+                        else:
+                            y.host_data[b * w.shape[1] + n] += x.host_data[b*x.shape[1] + m] * w.host_data[m * w.shape[1] + n]
+                        
 class Linear(Module):
     __constants__ = ['in_features', 'out_features']
     in_features: int
@@ -28,11 +37,13 @@ class Linear(Module):
         super(Linear, self).__init__()
         self.in_features = in_features
         self.out_features = out_features
-        self.weight = normal()([out_features, in_features], True)
+        self.weight = normal()([in_features, out_features], True)
         self.bias = zeros([out_features], True) if bias else None
 
     def forward_cpu(self, x: tensor) -> tensor:
         y = zeros([x.shape[0], self.out_features])
+        print(x.shape, self.weight.shape, y.shape)  
+
         matmul(x, self.weight, y)
 
         if self.bias is not None:

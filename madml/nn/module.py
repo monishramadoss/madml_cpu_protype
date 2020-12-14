@@ -24,7 +24,6 @@ class Module(object):
         self.cache = []
 
     def forward(self, *args, **kwargs):
-        print(type(self))
         return self.forward_cpu(*args, **kwargs)
 
     def forward_cpu(self, *args, **kwargs):
@@ -34,4 +33,7 @@ class Module(object):
         raise NotImplementedError
 
     def __call__(self, *args, **kwargs):
-        return self.forward(*args, **kwargs)
+        y = self.forward(*args, **kwargs)
+        if isinstance(y, tensor):
+            print(type(self), y.shape)
+        return y

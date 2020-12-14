@@ -100,12 +100,9 @@ class ConvNd(Module):
             self._col = [1 for _ in range(self.dims)]
             self._vol = [1 for _ in range(self.dims)]
 
-            for i in range(self.dims - 1, 0, -1):
-                self._col[i] = x.shape[i + 2] + 2 * self.padding[i] - self.dilation[i] * self.kernel_size[i] - 1
-                self._col[i] /= self.stride[i]
-                self._col[i] = int(self._col[i]) + 1
+            for i in range(self.dims - 1, -1, -1):
+                self._col[i] = int((x.shape[i+2] + 2 * self.padding[i] - self.dilation[i] * (self.kernel_size[i] - 1) - 1) // self.stride[i]) + 1
                 self._vol[i] = x.shape[i + 2]
-
             self.batch_size = x.shape[0]
         y = zeros([self.batch_size, self.out_channels, *self._col])
         self._2col(x.host_data)
