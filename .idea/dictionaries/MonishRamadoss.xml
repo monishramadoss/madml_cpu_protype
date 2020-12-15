@@ -5,6 +5,7 @@
       <w>conv</w>
       <w>fmaps</w>
       <w>kaiming</w>
+      <w>logit</w>
       <w>nonlinearity</w>
       <w>relu</w>
     </words>

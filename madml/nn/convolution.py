@@ -49,8 +49,8 @@ class ConvNd(Module):
     output_padding: List[int]
     groups: int
     padding_mode: str
-    weight: tensor
-    bias: Optional[tensor]
+    weight: Parameter
+    bias: Optional[Parameter]
 
     def __init__(self, dims, in_channels: int, out_channels: int, kernel_size: Union[int, List[int]],
                  stride: Union[int, List[int]], padding: Union[int, List[int]], dilation: Union[int, List[int]],
@@ -92,7 +92,7 @@ class ConvNd(Module):
             weight_shape = [in_channels, out_channels // groups, *self.kernel_size]
         else:
             weight_shape = [out_channels, in_channels // groups, *self.kernel_size]
-        self.weight = xavier_uniform()(weight_shape, True)
+        self.weight = Parameter(xavier_uniform(), weight_shape)
 
     def forward_cpu(self, x: tensor) -> tensor:
         self.cache.append(x)
@@ -107,15 +107,15 @@ class ConvNd(Module):
         y = zeros([self.batch_size, self.out_channels, *self._col])
         self._2col(x.host_data)
         self.weight.reshape([-1, self.col.shape[0]])
-        matmul(self.col, self.weight, y)
+        matmul(self.col, self.weight.param, y)
 
         if self._use_bias:
             if self.bias is None:
-                self.bias = zeros(y.shape[1:], True)
+                self.bias = Parameter(zeros, y.shape[1:])
             bs = self.bias.size
             for b in range(y.shape[0]):
                 for i in range(bs):
-                    y.host_data[b * bs + i] += self.bias.host_data[i]
+                    y.host_data[b * bs + i] += self.bias.param.host_data[i]
 
         return y
 

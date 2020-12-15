@@ -5,7 +5,6 @@ from __future__ import unicode_literals
 
 import struct
 from typing import List, Union
-
 import numpy as np
 
 _gradients = {}

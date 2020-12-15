@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 import madml
 import madml.nn as nn
-import madml.optimizer as optimizer
+import madml.optimizer as optimzer
 
 filename = [["training_images", "train-images-idx3-ubyte.gz"],
             ["test_images", "t10k-images-idx3-ubyte.gz"],
@@ -90,8 +90,13 @@ def train_loop(model=mnist_model()):
 
     t_x = madml.tensor(x)
     t_y = madml.tensor(y)
-
+    loss_fn = nn.CrossEntropyLoss()
+    optim = optimzer.SGD(model.parameters())
     for i in range(t_x.shape[0]):
-        logits = model(t_x[i])
-        print(i, logits.shape)
+        optim.zero_grad()
+        logit = model(t_x[i])
+        loss = loss_fn(logit, t_y[i])
+        print(i, logit.shape)
+        print(loss)
+        optim.step()
 train_loop()
