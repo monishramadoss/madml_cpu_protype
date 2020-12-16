@@ -17,18 +17,18 @@ def _size(shape: List[int]) -> int:
     return size
 
 
-def zeros(shape: List[int], is_grad: bool = False) -> tensor:
+def zeros(shape: List[int]) -> tensor:
     data = [0 for _ in range(_size(shape))]
-    return tensor(data, shape, is_grad)
+    return tensor(data, shape)
 
 
 def zeros_like(t: tensor) -> tensor:
     return zeros(t.shape)
 
 
-def ones(shape: List[int], is_grad: bool = False) -> tensor:
+def ones(shape: List[int]) -> tensor:
     data = [1 for _ in range(_size(shape))]
-    return tensor(data, shape, is_grad)
+    return tensor(data, shape)
 
 
 def full_like(t: tensor, val: float) -> tensor:
@@ -63,19 +63,19 @@ def calc_gain(nonlinearity: str, param: Union[float, int] = None):
 
 
 def uniform(a: float = 0., b: float = 1.):
-    def init(shape: List[int], is_grad: bool = False) -> tensor:
+    def init(shape: List[int]) -> tensor:
         sz = _size(shape)
         data = [random.uniform(a, b) for _ in range(sz)]
-        return tensor(data, shape, is_grad)
+        return tensor(data, shape)
 
     return init
 
 
 def normal(mean=0., std=1.):
-    def init(shape: List[int], is_grad: bool = False) -> tensor:
+    def init(shape: List[int]) -> tensor:
         sz = _size(shape)
         data = [random.normalvariate(mean, std) for _ in range(sz)]
-        return tensor(data, shape, is_grad)
+        return tensor(data, shape)
 
     return init
 
@@ -96,20 +96,20 @@ def _calculate_fan_in_and_fan_out(shape: List[int]) -> List[int]:
 
 
 def xavier_uniform(gain: float = 1.):
-    def init(shape: List[int], is_grad: bool = False) -> tensor:
+    def init(shape: List[int]) -> tensor:
         fan_in, fan_out = _calculate_fan_in_and_fan_out(shape)
         std = gain * math.sqrt(2.0 / float(fan_in + fan_out))
         a = math.sqrt(3.) * std
-        return uniform(-a, a)(shape, is_grad)
+        return uniform(-a, a)(shape)
 
     return init
 
 
 def xavier_normal(gain: float = 1.):
-    def init(shape: List[int], is_grad: bool = False) -> tensor:
+    def init(shape: List[int]) -> tensor:
         fan_in, fan_out = _calculate_fan_in_and_fan_out(shape)
         std = gain * math.sqrt(2.0 / float(fan_in + fan_out))
-        return normal(0., std)(shape, is_grad)
+        return normal(0., std)(shape)
 
     return init
 
@@ -124,21 +124,20 @@ def _calculate_correct_fan(shape: List[int], mode: str) -> int:
 
 
 def kaiming_uniform(a: Union[int, float] = 0, mode: str = 'fan_in', nonlinearity: str = 'leaky_relu'):
-    def init(shape: List[int], is_grad: bool = False) -> tensor:
+    def init(shape: List[int]) -> tensor:
         fan = _calculate_correct_fan(shape, mode)
         gain = calc_gain(nonlinearity, a)
         std = gain / math.sqrt(fan)
         bound = math.sqrt(3.) * std
-        return uniform(-bound, bound)(shape, is_grad)
+        return uniform(-bound, bound)(shape)
 
     return init
 
 
 def kaiming_normal(a: Union[int, float] = 0, mode: str = 'fan_in', nonlinearity: str = 'leaky_relu'):
-    def init(shape: List[int], is_grad: bool = False) -> tensor:
+    def init(shape: List[int]) -> tensor:
         fan = _calculate_correct_fan(shape, mode)
         gain = calc_gain(nonlinearity, a)
         std = gain / math.sqrt(fan)
-        return normal(0, std)(shape, is_grad)
-
+        return normal(0, std)(shape)
     return init

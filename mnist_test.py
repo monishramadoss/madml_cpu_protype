@@ -96,6 +96,7 @@ def train_loop(model=mnist_model()):
         optim.zero_grad()
         logit = model(t_x[i])
         loss = loss_fn(logit, t_y[i])
+        loss.backward()
         print(i, logit.shape)
         print(loss)
         optim.step()

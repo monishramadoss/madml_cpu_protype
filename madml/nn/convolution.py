@@ -101,7 +101,9 @@ class ConvNd(Module):
             self._vol = [1 for _ in range(self.dims)]
 
             for i in range(self.dims - 1, -1, -1):
-                self._col[i] = int((x.shape[i+2] + 2 * self.padding[i] - self.dilation[i] * (self.kernel_size[i] - 1) - 1) // self.stride[i]) + 1
+                self._col[i] = int(
+                    (x.shape[i + 2] + 2 * self.padding[i] - self.dilation[i] * (self.kernel_size[i] - 1) - 1) //
+                    self.stride[i]) + 1
                 self._vol[i] = x.shape[i + 2]
             self.batch_size = x.shape[0]
         y = zeros([self.batch_size, self.out_channels, *self._col])
@@ -121,12 +123,12 @@ class ConvNd(Module):
 
     def backward_cpu(self, dy: tensor) -> tensor:
         x = self.cache[0]
-
-        matmul(dy.reshape([self.out_channels, -1]), self.col, self.weight, True)
-        matmul(self.weight.reshape)
+        dy_reshaped = dy.reshape([self.out_channels, -1])
+        matmul(dy_reshaped, self.col, self.weight.param, True)
+        matmul(self.weight.reshape([-1, self.out_channels]), dy_reshaped, x.gradient)
 
         self.vol.link(x)
-        return self.vol
+        return x
 
     def _2col(self, x: List[Union[float, int, bytes, bool]]):
         n_output_plane = self.in_channels
@@ -178,9 +180,6 @@ class ConvNd(Module):
             output_length *= c
             index_length *= c
 
-        if self.vol is None:
-            self.vol = zeros([n_output_plane, output_length])
-
         for elt in range(self.batch_size):
             data_col = elt * self.in_channels * self._vol[0] * self._vol[1] * self._vol[2]
             data_vol = elt * n_output_plane * self._col[0] * self._col[1] * self._col[2]
@@ -202,7 +201,7 @@ class ConvNd(Module):
                                 data_col_idx = data_col + ((index * self._col[0] + d_col) * self._col[1] + h_col) * \
                                                self._col[2] + w_col
                                 if data_col_idx < len(x) and data_vol_idx < self.vol.size:
-                                    self.vol[int(data_vol_idx)] += x[int(data_col_idx)]
+                                    self.col.gradient.host_data[int(data_vol_idx)] += x[int(data_col_idx)]
 
 
 class Conv1d(ConvNd):

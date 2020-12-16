@@ -73,7 +73,7 @@ class transpose(Module):
                 new_pos %= self.stride[len(dx.shape) + j]
 
             dx.host_data[i] = dx.host_data[old_pos]
-        return y
+        return dx
 
     def prepare_stride(self, shape_before: List[int], shape_after: List[int]):
         dims = len(self.axes)
@@ -81,4 +81,4 @@ class transpose(Module):
         self.stride[3 * dims - 1] = 1
         for i in range(dims - 2, 0, -1):
             self.stride[dims * 2 + i] = self.stride[dims * 2 + i + 1] * shape_before[i + 1]
-            self.stride[dims + i] = stride[dims + i + 1] * shape_after[i + 1]
+            self.stride[dims + i] = self.stride[dims + i + 1] * shape_after[i + 1]

@@ -15,7 +15,7 @@ def matmul(x: tensor, w: tensor, y: tensor, use_grad: bool = False):
             for m in range(x.shape[1]):
                 for n in range(w.shape[1]):
                     if use_grad:
-                        y.grad_data[b * w.shape[1] + n] += x.host_data[b * x.shape[1] + m] * w.host_data[
+                        y.grad_data.host_data[b * w.shape[1] + n] += x.host_data[b * x.shape[1] + m] * w.host_data[
                             m * w.shape[1] + n]
                     else:
                         y.host_data[b * w.shape[1] + n] += x.host_data[b * x.shape[1] + m] * w.host_data[
@@ -27,7 +27,7 @@ def matmul(x: tensor, w: tensor, y: tensor, use_grad: bool = False):
                 for n in range(w.shape[1]):
                     for k in range(w.shape[0]):
                         if use_grad:
-                            y.grad_data[b * w.shape[1] + n] += x.host_data[b * x.shape[1] + m] * w.host_data[
+                            y.grad_data.host_data[b * w.shape[1] + n] += x.host_data[b * x.shape[1] + m] * w.host_data[
                                 m * w.shape[1] + n]
                         else:
                             y.host_data[b * w.shape[1] + n] += x.host_data[b * x.shape[1] + m] * w.host_data[
@@ -61,7 +61,6 @@ class Linear(Module):
     def backward_cpu(self, dy: tensor) -> tensor:
         x = self.cache[0]
         dx = zeros(x.shape)
-        dx.link(x)
         matmul(dy, self.weight.param, dx)
         matmul(dy.T(), x, self.weight.param, True)
         return dx

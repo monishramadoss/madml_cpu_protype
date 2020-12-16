@@ -18,7 +18,7 @@ def _size(shape: List[int]) -> int:
 
 
 def regularization(reg_type='l2', lam=1e-3):
-    reg_lambda = dict()[reg_type]
+
     return 1
 
 
@@ -50,9 +50,10 @@ class CrossEntropyLoss(_WeightedLoss):
         self.ignore_index = ignore_index
         self.exps = None
         self.loss = tensor([0], [1])
+        self.batchsize = 1
 
     def forward_cpu(self, logit: tensor, target: tensor) -> tensor:
-        batchsize = logit.shape[0]
+        self.batchsize = logit.shape[0]
         if self.args is None:
             pass
 
@@ -90,16 +91,15 @@ class CrossEntropyLoss(_WeightedLoss):
 
         self.loss.host_data[0] = 0
         for x in range(logit.size):
-            self.loss.host_data[0] += logit.host_data[x] / batchsize
+            self.loss.host_data[0] += logit.host_data[x] / self.batchsize
 
         self.cache.append(logit)
         self.cache.append(target)
         self.cache.append(prob)
-
         return self.loss
 
-    def backward_cpu(self) -> tensor:
-        logit, target, grad_y, m = self.cache
+    def backward_cpu(self, h=None) -> tensor:
+        logit, target, grad_y = self.cache
 
         upper = _size(logit.shape[:1])
         lower = _size(logit.shape[1:])
@@ -107,6 +107,6 @@ class CrossEntropyLoss(_WeightedLoss):
         for i in range(upper):
             for j in range(lower):
                 grad_y.host_data[i*lower + target.host_data[i]] -= 1.
-                grad_y.host_data[i * lower + target.host_data[i]] /= m
+                grad_y.host_data[i * lower + target.host_data[i]] /= self.batchsize
 
         return grad_y

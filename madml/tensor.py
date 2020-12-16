@@ -6,7 +6,9 @@ from __future__ import unicode_literals
 import struct
 from typing import List, Union
 import numpy as np
+from queue import Queue
 
+# from .nn.module import module_cache, execution_order
 _gradients = {}
 _tensors = []
 
@@ -24,8 +26,7 @@ class tensor(object):
     host_data: List[Union[float, int, bytes, bool]]
     on_device: bool
 
-    def __init__(self, data: Union[List[Union[float, int, bytes, bool]], np.ndarray], shape: List[int] = [],
-                 is_grad: bool = False) -> None:
+    def __init__(self, data: Union[List[Union[float, int, bytes, bool]], np.ndarray], shape: List[int] = []) -> None:
         if isinstance(data, np.ndarray):
             self.host_data = data.reshape(-1).tolist()
             self.shape = data.shape
@@ -40,8 +41,8 @@ class tensor(object):
         assert len(self.host_data) == self.size
         _tensors.append(id(self))
         self.on_device = False
-        self.grad_data = [0. for _ in range(self.size)] if is_grad else None
-
+        self.parent = []
+        self.children = []
     def __len__(self):
         return self.shape[0]
 
@@ -84,3 +85,38 @@ class tensor(object):
 
     def link(self, t) -> None:
         _gradients[id(self)] = id(t)
+
+    @property
+    def gradient(self):
+        if id(self) not in _gradients.keys():
+            _gradients[id(self)] = tensor([0 for _ in range(self.size)], self.shape)
+        return _gradients[id(self)]
+
+    @property
+    def grad_data(self):
+        if id(self) not in _gradients.keys():
+            _gradients[id(self)] = tensor([0 for _ in range(self.size)], self.shape)
+        return _gradients[id(self)]
+
+    def backward(self):
+        for c in self.children:
+            print(type(c))
+        q = Queue()
+        q.put(self)
+        while q.not_empty:
+            t = q.get()
+            for p in t.parent:
+                y = p.backward()
+                if isinstance(y, list) or isinstance(y, tuple):
+                    for x in y:
+                        q.put(x)
+                elif isinstance(y, tensor):
+                    q.put(y)
+                else:
+                    q.put(y)
+                p.backward_call[id(q.get())] = True
+
+        # for k, x in enumerate(reversed(execution_order)):
+        #     m, i, o = module_cache[x]
+        #     if o == id(self):
+        #         z = m.backward(z)
