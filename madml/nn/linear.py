@@ -56,11 +56,13 @@ class Linear(Module):
                     y[m * self.out_features + n] += self.bias.param.host_data[n]
 
         self.cache.append(x)
+        self.cache.append(y)
         return y
 
-    def backward_cpu(self, dy: tensor) -> tensor:
-        x = self.cache[0]
-        dx = zeros(x.shape)
-        matmul(dy, self.weight.param, dx)
-        matmul(dy.T(), x, self.weight.param, True)
-        return dx
+    def backward_cpu(self) -> None:
+        x, y = self.cache
+        self.weight.param.gradient.T()
+        matmul(y.gradient, self.weight.param.gradient, x.gradient)
+        y.gradient.T()
+        matmul(y.gradient, y, self.weight.param)
+        return y

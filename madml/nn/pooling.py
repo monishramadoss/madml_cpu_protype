@@ -60,21 +60,18 @@ class _MaxPoolNd(Module):
         self._2col(x.host_data)
 
         max_idx = []
-        self.cache = [x, max_idx]
+        
         y = zeros([x.shape[0], x.shape[1], *self._col])
-
+        self.cache = [x, max_idx, y]
         return y
 
-    def backward_cpu(self, dy: tensor) -> tensor:
-        x, max_idx = self.cache
-        dx_col = zeros(self.col.shape)
-
-        # dy_col = np.transpose(dy, (2, 3, 4, 0, 1)).ravel()  # (72128,)
+    def backward_cpu(self) -> None:
+        x, max_idx, y = self.cache
+        # x.gradient = np.transpose(x.gradient, (2, 3, 4, 0, 1)).ravel()  # (72128,)
         # dx_col[max_idx, range(dy_col.size)] = dy_col
-
-        self._2vol(dx_col.host_data)
-        self.vol.link(x)
-        return self.vol
+        self._2vol(y.gradient.host_data)
+        print(x.gradient.shape)
+        return y
 
     def _2col(self, x: List[Union[float, int, bytes, bool]]):
         n_output_plane = self.in_channels
@@ -125,9 +122,6 @@ class _MaxPoolNd(Module):
             output_length *= c
             index_length *= c
 
-        if self.vol is None:
-            self.vol = zeros([n_output_plane, output_length])
-
         for elt in range(self.batch_size):
             data_col = elt * self.in_channels * self._vol[0] * self._vol[1] * self._vol[2]
             data_vol = elt * n_output_plane * self._col[0] * self._col[1] * self._col[2]
@@ -149,7 +143,7 @@ class _MaxPoolNd(Module):
                                 data_col_idx = data_col + ((index * self._col[0] + d_col) * self._col[1] + h_col) * \
                                                self._col[2] + w_col
                                 if data_col_idx < x.size and data_vol_idx < self.vol.size:
-                                    self.vol[int(data_vol_idx)] += x[int(data_col_idx)]
+                                    self.col.gradient.host_data[int(data_vol_idx)] += x[int(data_col_idx)]
 
 
 class MaxPool1d(_MaxPoolNd):

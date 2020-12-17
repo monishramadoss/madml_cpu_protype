@@ -35,12 +35,14 @@ class ReLU(Module):
                 self.out.host_data[i] = 0 if x.host_data[i] <= 0 else x.host_data[i]
             return self.out
 
-    def backward_cpu(self, dy: tensor) -> tensor:
+    def backward_cpu(self) -> None:
         x = self.cache[0]
-        assert(x.size == dy.size)
-        for i in range(x.size):
-            if x.host_data[i] <= 0:
-                dy.grad_data[i] = 0
-        return dy
-
-
+        if self.inplace:
+            for i in range(x.size):
+                if x.host_data[i] <= 0:
+                    x.gradient.host_data[i] = 0
+                else:
+                    x.gradient.host_data[i] = x.host_data[i]
+            return x
+        else:
+            return self.out

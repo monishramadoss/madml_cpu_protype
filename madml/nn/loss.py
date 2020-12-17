@@ -51,7 +51,7 @@ class CrossEntropyLoss(_WeightedLoss):
         self.exps = None
         self.loss = tensor([0], [1])
         self.batchsize = 1
-
+    
     def forward_cpu(self, logit: tensor, target: tensor) -> tensor:
         self.batchsize = logit.shape[0]
         if self.args is None:
@@ -73,21 +73,21 @@ class CrossEntropyLoss(_WeightedLoss):
             reduce_sum.host_data[i] = acc
 
         # PROBABILITY
-        prob = zeros_like(logit)
+        self.prob = zeros_like(logit)
         for i in range(upper):
             for j in range(lower):
-                prob.host_data[i * lower + j] = math.exp(logit.host_data[i * lower + j] - max)
+                self.prob.host_data[i * lower + j] = math.exp(logit.host_data[i * lower + j] - max)
             mu = 0
             for j in range(lower):
-                mu += prob.host_data[i * lower + j]
+                mu += self.prob.host_data[i * lower + j]
             for j in range(lower):
-                prob.host_data[i * lower + j] /= mu
+                self.prob.host_data[i * lower + j] /= mu
 
         # LOG FN
         log_like = zeros_like(logit)
         for i in range(upper):
             for j in range(lower):
-                log_like.host_data[i * lower + j] = -math.log(prob.host_data[i*lower + target.host_data[i]])
+                log_like.host_data[i * lower + j] = -math.log(self.prob.host_data[i*lower + target.host_data[i]])
 
         self.loss.host_data[0] = 0
         for x in range(logit.size):
@@ -95,18 +95,18 @@ class CrossEntropyLoss(_WeightedLoss):
 
         self.cache.append(logit)
         self.cache.append(target)
-        self.cache.append(prob)
         return self.loss
 
-    def backward_cpu(self, h=None) -> tensor:
-        logit, target, grad_y = self.cache
-
+    def backward_cpu(self) -> None:
+        logit, target = self.cache
+        print(self.loss.parent, self.loss.children)
+        self.backward_call[id(logit)] = True
+        self.backward_call[id(target)] = True
         upper = _size(logit.shape[:1])
         lower = _size(logit.shape[1:])
-
+        
         for i in range(upper):
-            for j in range(lower):
-                grad_y.host_data[i*lower + target.host_data[i]] -= 1.
-                grad_y.host_data[i * lower + target.host_data[i]] /= self.batchsize
-
-        return grad_y
+            self.prob.host_data[i * lower + target.host_data[i]] -= 1.
+            self.prob.host_data[i * lower + target.host_data[i]] /= self.batchsize
+        
+        return logit

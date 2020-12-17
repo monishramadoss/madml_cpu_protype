@@ -95,7 +95,7 @@ class ConvNd(Module):
         self.weight = Parameter(xavier_uniform(), weight_shape)
 
     def forward_cpu(self, x: tensor) -> tensor:
-        self.cache.append(x)
+        
         if self._col == [] or self._vol == []:
             self._col = [1 for _ in range(self.dims)]
             self._vol = [1 for _ in range(self.dims)]
@@ -118,17 +118,17 @@ class ConvNd(Module):
             for b in range(y.shape[0]):
                 for i in range(bs):
                     y.host_data[b * bs + i] += self.bias.param.host_data[i]
-
+        self.cache.append(x)
+        self.cache.append(y)
         return y
 
-    def backward_cpu(self, dy: tensor) -> tensor:
-        x = self.cache[0]
-        dy_reshaped = dy.reshape([self.out_channels, -1])
+    def backward_cpu(self) -> None:
+        x, y = self.cache
+        dy_reshaped = y.gradient
+        dy_reshaped.reshape([self.out_channels, -1])
         matmul(dy_reshaped, self.col, self.weight.param, True)
         matmul(self.weight.reshape([-1, self.out_channels]), dy_reshaped, x.gradient)
-
-        self.vol.link(x)
-        return x
+        return y
 
     def _2col(self, x: List[Union[float, int, bytes, bool]]):
         n_output_plane = self.in_channels

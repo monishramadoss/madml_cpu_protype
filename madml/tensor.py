@@ -99,22 +99,28 @@ class tensor(object):
         return _gradients[id(self)]
 
     def backward(self):
-        for c in self.children:
-            print(type(c))
-        q = Queue()
-        q.put(self)
-        while q.not_empty:
-            t = q.get()
-            for p in t.parent:
-                y = p.backward()
-                if isinstance(y, list) or isinstance(y, tuple):
-                    for x in y:
-                        q.put(x)
-                elif isinstance(y, tensor):
-                    q.put(y)
-                else:
-                    q.put(y)
-                p.backward_call[id(q.get())] = True
+        print("=== Backward Call")
+
+        for x in self.parent:
+            print(type(x))
+            y=x.backward()
+            y.backward()
+            
+        # q = Queue()
+        # q.put(self)
+        # while q.not_empty:
+        #     t = q.get()
+        #     for p in t.parent:
+        #         y = p.backward()
+        #         if isinstance(y, list) or isinstance(y, tuple):
+        #             for x in y:
+        #                 q.put(x)
+        #         elif isinstance(y, tensor):
+        #             q.put(y)
+        #         else:
+        #             print(type(y))
+        #             raise NotImplementedError("tensor")
+        #         p.backward_call[id(q.get())] = True
 
         # for k, x in enumerate(reversed(execution_order)):
         #     m, i, o = module_cache[x]

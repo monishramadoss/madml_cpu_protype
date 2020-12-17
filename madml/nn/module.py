@@ -48,14 +48,13 @@ class Module(object):
 
         return self.forward_cpu(*args, **kwargs)
 
-    def backward(self, *args, **kwargs):
-
-        return self.backward_cpu(*args, **kwargs)
+    def backward(self):
+        return self.backward_cpu()
 
     def forward_cpu(self, *args, **kwargs):
         raise NotImplementedError
 
-    def backward_cpu(self, *args, **kwargs):
+    def backward_cpu(self):
         raise NotImplementedError
 
     def __call__(self, *args, **kwargs):
