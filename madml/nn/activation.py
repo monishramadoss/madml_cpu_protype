@@ -3,10 +3,9 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import numpy as np
-
 from madml import tensor
 from .module import Module
+
 
 class ReLU(Module):
     __constants__ = ['inplace']
@@ -35,7 +34,7 @@ class ReLU(Module):
                 self.out.host_data[i] = 0 if x.host_data[i] <= 0 else x.host_data[i]
             return self.out
 
-    def backward_cpu(self) -> None:
+    def backward_cpu(self) -> tensor:
         x = self.cache[0]
         if self.inplace:
             for i in range(x.size):
@@ -45,4 +44,4 @@ class ReLU(Module):
                     x.gradient.host_data[i] = x.host_data[i]
             return x
         else:
-            return self.out
+            return x

@@ -3,10 +3,10 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from .module import Module, Parameter
 from typing import Union, List, Optional
-from madml import tensor, xavier_uniform, zeros, zeros_like
-from joblib import Parallel, delayed
+
+from madml import tensor, xavier_uniform, zeros
+from .module import Module, Parameter
 
 
 def _dim_fix(arr, arg_arr, pi):
@@ -22,16 +22,14 @@ def _dim_fix(arr, arg_arr, pi):
     return arr
 
 
-def matmul(x: tensor, w: tensor, y: tensor, use_grad: bool = False):
+def matmul(x: tensor, w: tensor, y: tensor):
+    assert(x.shape[1] == w.shape[0])
     for m in range(x.shape[0]):
         for n in range(w.shape[1]):
             acc = 0
             for k in range(w.shape[0]):
                 acc += x.host_data[m * w.shape[0] + k] * w.host_data[k * w.shape[1] + n]
-            if use_grad:
-                y.grad_data[m * w.shape[0] + n] = acc
-            else:
-                y.host_data[m * w.shape[0] + n] = acc
+            y.host_data[m * w.shape[1] + n] = acc
 
 
 class ConvNd(Module):
@@ -95,7 +93,7 @@ class ConvNd(Module):
         self.weight = Parameter(xavier_uniform(), weight_shape)
 
     def forward_cpu(self, x: tensor) -> tensor:
-        
+
         if self._col == [] or self._vol == []:
             self._col = [1 for _ in range(self.dims)]
             self._vol = [1 for _ in range(self.dims)]
@@ -109,7 +107,7 @@ class ConvNd(Module):
         y = zeros([self.batch_size, self.out_channels, *self._col])
         self._2col(x.host_data)
         self.weight.reshape([-1, self.col.shape[0]])
-        matmul(self.col, self.weight.param, y)
+        matmul(self.weight.param, self.col, y)
 
         if self._use_bias:
             if self.bias is None:
@@ -122,13 +120,16 @@ class ConvNd(Module):
         self.cache.append(y)
         return y
 
-    def backward_cpu(self) -> None:
+    def backward_cpu(self) -> tensor:
         x, y = self.cache
         dy_reshaped = y.gradient
+        self.col.T()
         dy_reshaped.reshape([self.out_channels, -1])
-        matmul(dy_reshaped, self.col, self.weight.param, True)
-        matmul(self.weight.reshape([-1, self.out_channels]), dy_reshaped, x.gradient)
-        return y
+        matmul(dy_reshaped, self.col, self.weight.param.gradient)
+        self.weight.reshape([-1, self.out_channels])
+        matmul(self.weight.param, dy_reshaped, self.col.gradient)
+        self._2vol(x.gradient.host_data)
+        return x
 
     def _2col(self, x: List[Union[float, int, bytes, bool]]):
         n_output_plane = self.in_channels
@@ -200,8 +201,8 @@ class ConvNd(Module):
                                                self._vol[2] + w_vol
                                 data_col_idx = data_col + ((index * self._col[0] + d_col) * self._col[1] + h_col) * \
                                                self._col[2] + w_col
-                                if data_col_idx < len(x) and data_vol_idx < self.vol.size:
-                                    self.col.gradient.host_data[int(data_vol_idx)] += x[int(data_col_idx)]
+                                if data_col_idx < len(x) and data_vol_idx < self.col.size:
+                                    x[int(data_col_idx)] += self.col.gradient.host_data[int(data_vol_idx)]
 
 
 class Conv1d(ConvNd):

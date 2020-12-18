@@ -1,9 +1,9 @@
-import numpy as np
-from urllib import request
 import gzip
-import pickle
 import os
-from tqdm import tqdm
+import pickle
+from urllib import request
+
+import numpy as np
 
 import madml
 import madml.nn as nn
@@ -100,4 +100,6 @@ def train_loop(model=mnist_model()):
         print(i, logit.shape)
         print(loss)
         optim.step()
+
+
 train_loop()

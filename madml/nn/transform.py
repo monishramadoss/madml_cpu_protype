@@ -4,8 +4,9 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 from typing import List
-from .module import Module
+
 from madml import tensor, zeros
+from .module import Module
 
 
 class flatten(Module):
@@ -21,11 +22,14 @@ class flatten(Module):
         for s in x.shape[1:]:
             size *= s
         x.reshape([x.shape[0], size])
+        self.cache.append(x)
         return x
 
-    def backward_cpu(self, dy: tensor) -> tensor:
-        dy.reshape(self.old_shape)
-        return dy
+    def backward_cpu(self) -> tensor:
+        x = self.cache[0]
+        x.reshape(self.old_shape)
+        x.gradient.reshape(self.old_shape)
+        return x
 
 
 class transpose(Module):
@@ -59,21 +63,23 @@ class transpose(Module):
                 new_pos %= self.stride[len(x.shape) + j]
 
             y.host_data[i] = x.host_data[old_pos]
+        self.cache.append(x)
+        self.cache.append(y)
         return y
 
-    def backward_cpu(self, dy: tensor) -> tensor:
+    def backward_cpu(self) -> None:
+        x, y = self.cache
+
         self.prepare_stride(self.new_shape, self.old_shape)
-        dx = zeros(self.old_shape)
-        for i in range(dx.size):
+        for i in range(x.size):
             old_pos = 0
             new_pos = i
             for j in range(len(x.shape)):
                 order = self.stride[j]
-                old_pos += (new_pos / self.stride[len(dx.shape) + j] * self.stride[len(dx.shape) * 2 + order])
-                new_pos %= self.stride[len(dx.shape) + j]
-
-            dx.host_data[i] = dx.host_data[old_pos]
-        return dx
+                old_pos += (new_pos / self.stride[len(x.shape) + j] * self.stride[len(x.shape) * 2 + order])
+                new_pos %= self.stride[len(x.shape) + j]
+            x.gradient.host_data[i] = y.gradient.host_data[old_pos]
+        return x
 
     def prepare_stride(self, shape_before: List[int], shape_after: List[int]):
         dims = len(self.axes)

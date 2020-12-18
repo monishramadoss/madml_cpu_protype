@@ -6,7 +6,6 @@ from __future__ import unicode_literals
 import struct
 from typing import List, Union
 import numpy as np
-from queue import Queue
 
 # from .nn.module import module_cache, execution_order
 _gradients = {}
@@ -43,6 +42,7 @@ class tensor(object):
         self.on_device = False
         self.parent = []
         self.children = []
+
     def __len__(self):
         return self.shape[0]
 
@@ -78,8 +78,9 @@ class tensor(object):
             _size *= s
         if _size < 0:
             s = self.size // _size
-            shape[shape.index(-1)] = s
+            shape[shape.index(-1)] = abs(s)
             _size *= s
+        _size = abs(_size)
         assert (_size == self.size)
         self.shape = shape
 
@@ -99,13 +100,14 @@ class tensor(object):
         return _gradients[id(self)]
 
     def backward(self):
-        print("=== Backward Call")
-
-        for x in self.parent:
-            print(type(x))
-            y=x.backward()
-            y.backward()
-            
+        for x in reversed(self.parent):
+            if not x.visited[id(self)]:
+                print(type(x), 'backward')
+                y = x.backward()
+                x.visited[id(self)] = True
+                if isinstance(y, tensor):
+                    y.backward()
+        return
         # q = Queue()
         # q.put(self)
         # while q.not_empty:

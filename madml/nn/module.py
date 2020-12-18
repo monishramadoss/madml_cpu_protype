@@ -4,8 +4,8 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 from typing import List
-from madml import tensor, zeros
 
+from madml import tensor, zeros
 
 global execution_order
 global parameter_cache
@@ -41,11 +41,10 @@ class Module(object):
         self.cache = []
         self.backend = backend
         self.registered = False
-        self.backward_call = {}
+        self.visited = {}
         module_cache[id(self)] = self
 
     def forward(self, *args, **kwargs):
-
         return self.forward_cpu(*args, **kwargs)
 
     def backward(self):
@@ -55,7 +54,7 @@ class Module(object):
         raise NotImplementedError
 
     def backward_cpu(self):
-        raise NotImplementedError
+        pass
 
     def __call__(self, *args, **kwargs):
         y = self.forward(*args, **kwargs)
@@ -64,11 +63,13 @@ class Module(object):
             if isinstance(y, tuple) or isinstance(y, list):
                 for x in y:
                     x.parent += [self]
+                    self.visited[id(x)] = False
             else:
                 y.parent += [self]
+                self.visited[id(y)] = False
             for x in args:
                 x.children += [self]
-                self.backward_call[id(x)] = False
+                self.visited[id(x)] = False
             execution_order.append(self)
             self.registered = True
 

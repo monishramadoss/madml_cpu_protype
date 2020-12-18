@@ -3,9 +3,9 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from typing import List, Union
-import random
 import math
+import random
+from typing import List, Union
 
 from .tensor import tensor
 
@@ -140,4 +140,5 @@ def kaiming_normal(a: Union[int, float] = 0, mode: str = 'fan_in', nonlinearity:
         gain = calc_gain(nonlinearity, a)
         std = gain / math.sqrt(fan)
         return normal(0, std)(shape)
+
     return init

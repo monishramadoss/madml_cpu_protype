@@ -3,10 +3,10 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from .module import Module, Parameter
 from typing import Union, List, Optional
-from madml import tensor, xavier_uniform, zeros, zeros_like
 
+from madml import tensor, zeros
+from .module import Module
 
 
 def _dim_fix(arr, arg_arr, pi):
@@ -54,24 +54,29 @@ class _MaxPoolNd(Module):
             self._vol = [1 for _ in range(self.dims)]
 
             for i in range(self.dims - 1, 0, -1):
-                self._col[i] = int((x.shape[i+2] + 2 * self.padding[i] - self.dilation[i] * (self.kernel_size[i] - 1) - 1) // self.stride[i]) + 1
+                self._col[i] = int(
+                    (x.shape[i + 2] + 2 * self.padding[i] - self.dilation[i] * (self.kernel_size[i] - 1) - 1) //
+                    self.stride[i]) + 1
                 self._vol[i] = x.shape[i + 2]
             self.batch_size = x.shape[0]
         self._2col(x.host_data)
 
         max_idx = []
-        
+
+        # max_idx = np.argmax(B, axis=0)
+        # y = B[max_idx, range(max_idx.size)]
+
         y = zeros([x.shape[0], x.shape[1], *self._col])
         self.cache = [x, max_idx, y]
         return y
 
     def backward_cpu(self) -> None:
         x, max_idx, y = self.cache
-        # x.gradient = np.transpose(x.gradient, (2, 3, 4, 0, 1)).ravel()  # (72128,)
-        # dx_col[max_idx, range(dy_col.size)] = dy_col
-        self._2vol(y.gradient.host_data)
-        print(x.gradient.shape)
-        return y
+        # dy_col = np.transpose(y.gradient, (2, 3, 4, 0, 1)).ravel()  # (72128,)
+        # self.col.gradient[max_idx, range(dy_col.size)] = dy_col
+        self._2vol(x.gradient.host_data)
+        # print(x.gradient.shape)
+        return x
 
     def _2col(self, x: List[Union[float, int, bytes, bool]]):
         n_output_plane = self.in_channels
@@ -142,8 +147,8 @@ class _MaxPoolNd(Module):
                                                self._vol[2] + w_vol
                                 data_col_idx = data_col + ((index * self._col[0] + d_col) * self._col[1] + h_col) * \
                                                self._col[2] + w_col
-                                if data_col_idx < x.size and data_vol_idx < self.vol.size:
-                                    self.col.gradient.host_data[int(data_vol_idx)] += x[int(data_col_idx)]
+                                if data_col_idx < len(x) and data_vol_idx < self.col.size:
+                                    x[int(data_col_idx)] += self.col.gradient.host_data[int(data_vol_idx)]
 
 
 class MaxPool1d(_MaxPoolNd):
@@ -167,7 +172,7 @@ class MaxPool2d(_MaxPoolNd):
     def __init__(self, kernel_size: Union[int, List[int]], stride: Optional[Union[int, List[int]]] = None,
                  padding: Union[int, List[int]] = 0, dilation: Union[int, List[int]] = 1,
                  return_indices: bool = False, ceil_mode: bool = False) -> None:
-        super(MaxPool2d, self).__init__(2   , kernel_size, stride, padding, dilation, return_indices, ceil_mode)
+        super(MaxPool2d, self).__init__(2, kernel_size, stride, padding, dilation, return_indices, ceil_mode)
 
 
 class MaxPool3d(_MaxPoolNd):
