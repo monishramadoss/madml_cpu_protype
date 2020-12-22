@@ -61,8 +61,16 @@ class _MaxPoolNd(Module):
             self.batch_size = x.shape[0]
         self._2col(x.host_data)
 
-        max_idx = []
 
+        max_idx = [(0, 0) for _ in range(x.shape[0])] 
+        # ARGMAX
+        for i in range(x.shape[0]):
+            max_idx[i] = 0
+            lower = x.size // x.shape[0]
+            for j in range(lower):
+                x.host_data[i * lower + j]
+
+        self.col
         # max_idx = np.argmax(B, axis=0)
         # y = B[max_idx, range(max_idx.size)]
 

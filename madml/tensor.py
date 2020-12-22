@@ -128,3 +128,8 @@ class tensor(object):
         #     m, i, o = module_cache[x]
         #     if o == id(self):
         #         z = m.backward(z)
+
+
+    def numpy(self):
+        
+        return np.array(self.host_data).reshape(self.shape)
