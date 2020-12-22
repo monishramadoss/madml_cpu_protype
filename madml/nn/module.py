@@ -57,6 +57,7 @@ class Module(object):
         pass
 
     def __call__(self, *args, **kwargs):
+        print(type(self), end=' ')
         y = self.forward(*args, **kwargs)
 
         if not self.registered:
@@ -74,7 +75,7 @@ class Module(object):
             self.registered = True
 
         if isinstance(y, tensor):
-            print(type(self), y.shape)
+            print(y.shape)
         return y
 
     def parameters(self):

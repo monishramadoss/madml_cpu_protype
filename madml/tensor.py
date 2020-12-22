@@ -108,28 +108,6 @@ class tensor(object):
                 if isinstance(y, tensor):
                     y.backward()
         return
-        # q = Queue()
-        # q.put(self)
-        # while q.not_empty:
-        #     t = q.get()
-        #     for p in t.parent:
-        #         y = p.backward()
-        #         if isinstance(y, list) or isinstance(y, tuple):
-        #             for x in y:
-        #                 q.put(x)
-        #         elif isinstance(y, tensor):
-        #             q.put(y)
-        #         else:
-        #             print(type(y))
-        #             raise NotImplementedError("tensor")
-        #         p.backward_call[id(q.get())] = True
-
-        # for k, x in enumerate(reversed(execution_order)):
-        #     m, i, o = module_cache[x]
-        #     if o == id(self):
-        #         z = m.backward(z)
-
 
     def numpy(self):
-        
         return np.array(self.host_data).reshape(self.shape)

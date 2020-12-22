@@ -58,32 +58,37 @@ class _MaxPoolNd(Module):
                     (x.shape[i + 2] + 2 * self.padding[i] - self.dilation[i] * (self.kernel_size[i] - 1) - 1) //
                     self.stride[i]) + 1
                 self._vol[i] = x.shape[i + 2]
-            self.batch_size = x.shape[0]
+            self.batch_size = x.shape[0] * x.shape[1]
         self._2col(x.host_data)
 
-
-        max_idx = [(0, 0) for _ in range(x.shape[0])] 
+        max_idx = [0 for i in range(self.col.shape[1])]
         # ARGMAX
-        for i in range(x.shape[0]):
-            max_idx[i] = 0
-            lower = x.size // x.shape[0]
-            for j in range(lower):
-                x.host_data[i * lower + j]
+        for i in range(self.col.shape[0]):
+            for j in range(self.col.shape[1]):
+                m = self.col.host_data[i * self.col.shape[1] + j]
+                n = self.col.host_data[max_idx[j] * self.col.shape[1] + j]
+                if n < m:
+                    max_idx[j] = i
 
-        self.col
-        # max_idx = np.argmax(B, axis=0)
         # y = B[max_idx, range(max_idx.size)]
-
         y = zeros([x.shape[0], x.shape[1], *self._col])
-        self.cache = [x, max_idx, y]
+        for i in range(self.col.shape[1]):
+            idx = max_idx[i]
+            y.host_data[i] = self.col.host_data[idx * self.col.shape[1] + i]
+        self.cache.append(x)
+        self.cache.append(max_idx)
+        self.cache.append(y)
         return y
 
     def backward_cpu(self) -> None:
         x, max_idx, y = self.cache
         # dy_col = np.transpose(y.gradient, (2, 3, 4, 0, 1)).ravel()  # (72128,)
+
         # self.col.gradient[max_idx, range(dy_col.size)] = dy_col
+        for i in range(self.col.shape[1]):
+            idx = max_idx[i]
+            self.col.gradient.host_data[idx * self.col.shape[1] + i] = y.gradient.host_data[i]
         self._2vol(x.gradient.host_data)
-        # print(x.gradient.shape)
         return x
 
     def _2col(self, x: List[Union[float, int, bytes, bool]]):
