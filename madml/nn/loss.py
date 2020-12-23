@@ -57,9 +57,10 @@ class CrossEntropyLoss(_WeightedLoss):
             pass
 
         # MAX
-        max = 0
-        for i in range(logit.size):
-            max = logit.host_data[i] if logit.host_data[i] > max else max
+        max = [0 for i in range(logit.shape[0])]
+        for i in range(logit.shape[0]):
+            for j in range(logit.shape[1]):
+                max[i] = logit.host_data[i * logit.shape[1] + j] if logit.host_data[i * logit.shape[1] + j] > max[i] else max[i]
 
         # REDUCE_SUM
         reduce_sum = zeros(logit.shape[:1])
@@ -75,7 +76,7 @@ class CrossEntropyLoss(_WeightedLoss):
         self.prob = zeros_like(logit)
         for i in range(upper):
             for j in range(lower):
-                e = logit.host_data[i * lower + j] - max
+                e = logit.host_data[i * lower + j] - max[i]
                 prob = 1 / (1 + math.exp(e))
                 self.prob.host_data[i * lower + j] = prob
 
@@ -96,7 +97,6 @@ class CrossEntropyLoss(_WeightedLoss):
 
     def backward_cpu(self) -> tensor:
         logit, target = self.cache
-        print(self.loss.parent, self.loss.children)
         self.visited[id(self.loss)] = True
         self.visited[id(target)] = True
         upper = _size(logit.shape[:1])

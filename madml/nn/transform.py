@@ -9,29 +9,6 @@ from madml import tensor, zeros
 from .module import Module
 
 
-class flatten(Module):
-    old_shape: List[int]
-
-    def __init__(self) -> None:
-        super(flatten, self).__init__()
-        self.old_shape = []
-
-    def forward_cpu(self, x: tensor) -> tensor:
-        self.old_shape = x.shape
-        size = 1
-        for s in x.shape[1:]:
-            size *= s
-        x.reshape([x.shape[0], size])
-        self.cache.append(x)
-        return x
-
-    def backward_cpu(self) -> tensor:
-        x = self.cache[0]
-        x.reshape(self.old_shape)
-        x.gradient.reshape(self.old_shape)
-        return x
-
-
 class transpose(Module):
     __constants__ = ['axes']
     axes: List[int]

@@ -61,8 +61,8 @@ class mnist_model(nn.Module):
         self.fc1 = nn.Linear(46 * 12 * 12, 120)
         self.fc2 = nn.Linear(120, 84)
         self.fc3 = nn.Linear(84, 10)
-        self.flat = nn.flatten()
         self.relu1 = nn.ReLU()
+
         self.relu2 = nn.ReLU()
         self.relu3 = nn.ReLU()
         self.relu4 = nn.ReLU()
@@ -73,7 +73,7 @@ class mnist_model(nn.Module):
         x = self.pool(x)  # 32 x 14 x 14
         x = self.conv2(x)  # 46 x 12 x 12
         x = self.relu2(x)
-        x = self.flat(x)
+        x.flatten()
         x = self.relu3(self.fc1(x))
         x = self.relu4(self.fc2(x))
         x = self.fc3(x)
@@ -96,6 +96,6 @@ def train_loop(model=mnist_model()):
         logit = model(t_x[i])
         loss = loss_fn(logit, t_y[i])
         loss.backward()
-        optim.step()
+        #optim.step()
         print('===', i, logit.shape, loss.host_data)
 train_loop()

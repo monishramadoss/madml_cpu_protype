@@ -4,4 +4,4 @@ from .linear import Linear
 from .loss import CrossEntropyLoss
 from .module import Module, Parameter
 from .pooling import MaxPool1d, MaxPool2d, MaxPool3d
-from .transform import flatten, transpose
+from .transform import transpose

@@ -122,14 +122,18 @@ class ConvNd(Module):
 
     def backward_cpu(self) -> tensor:
         x, y = self.cache
-        dy_reshaped = y.gradient
         self.col.T()
-        dy_reshaped.reshape([self.out_channels, -1])
-        matmul(dy_reshaped, self.col, self.weight.param.gradient)
+        y.gradient.reshape([self.out_channels, -1])
+        print(y.gradient.shape)
+
+        matmul(y.gradient, self.col, self.weight.param.gradient)
         self.weight.reshape([-1, self.out_channels])
-        matmul(self.weight.param, dy_reshaped, self.col.gradient)
+        matmul(self.weight.param, y.gradient, self.col.gradient)
         self._2vol(x.gradient.host_data)
-        self.col.T()
+
+        self.col.reset()
+        self.weight.param.reset()
+        y.gradient.reset()
         return x
 
     def _2col(self, x: List[Union[float, int, bytes, bool]]):

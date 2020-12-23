@@ -22,6 +22,7 @@ def _convert_to_float(size: int, arr: List[bytes]) -> List[float]:
 
 class tensor(object):
     shape: List[int]
+    init_shape: List[int]
     host_data: List[Union[float, int, bytes, bool]]
     on_device: bool
 
@@ -32,7 +33,7 @@ class tensor(object):
         else:
             self.host_data = data
             self.shape = shape
-
+        self.init_shape = self.shape
         assert (len(self.shape) > 0)
         self.size = 1
         for s in self.shape:
@@ -81,12 +82,12 @@ class tensor(object):
             shape[shape.index(-1)] = abs(s)
             _size *= s
         _size = abs(_size)
-        assert (_size == self.size)
+        if _size != self.size:
+            print(_size, self.size)
+            assert (_size == self.size)
+
+        assert(_size == len(self.host_data) and self.size == len(self.host_data))
         self.shape = shape
-
-
-    def link(self, t) -> None:
-        _gradients[id(self)] = id(t)
 
     @property
     def gradient(self):
@@ -103,12 +104,23 @@ class tensor(object):
     def backward(self):
         for x in reversed(self.parent):
             if not x.visited[id(self)]:
-                print(type(x), 'backward')
                 y = x.backward()
                 x.visited[id(self)] = True
                 if isinstance(y, tensor):
                     y.backward()
+        self.parent.clear()
+        self.children.clear()
         return
 
     def numpy(self):
         return np.array(self.host_data).reshape(self.shape)
+
+    def reset(self):
+        self.shape = self.init_shape
+
+    def flatten(self):
+        s = 1
+        for S in self.shape[1:]:
+            s *= S
+        self.reshape([self.shape[0], s])
+        self.gradient.reshape([self.shape[0], s])

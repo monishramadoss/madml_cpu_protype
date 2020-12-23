@@ -8,8 +8,10 @@ from .module import Module, Parameter
 
 
 def matmul(x: tensor, w: tensor, y: tensor):
-    assert (x.shape[1] == w.shape[0])
-    assert (y.shape[0] == x.shape[0] and w.shape[1] == y.shape[1])
+    if x.shape[1] != w.shape[0]:
+        print(x.shape, w.shape, y.shape)
+        assert (x.shape[1] == w.shape[0])
+
     if len(x.shape) == 2:
         for b in range(x.shape[0]):
             for m in range(x.shape[1]):
@@ -57,6 +59,5 @@ class Linear(Module):
         matmul(y.gradient, self.weight.param, x.gradient)
         x.T()
         matmul(x, y.gradient, self.weight.param.gradient)
-        x.T()
-        self.weight.param.T()
+        self.weight.param.reset()
         return x
