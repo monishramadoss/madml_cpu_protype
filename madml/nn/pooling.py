@@ -48,7 +48,7 @@ class _MaxPoolNd(Module):
         self.col = None
 
     def forward_cpu(self, x: tensor) -> tensor:
-        self.cache.append(x)
+
         if self._col == [] or self._vol == []:
             self._col = [1 for _ in range(self.dims)]
             self._vol = [1 for _ in range(self.dims)]

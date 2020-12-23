@@ -75,22 +75,20 @@ class CrossEntropyLoss(_WeightedLoss):
         self.prob = zeros_like(logit)
         for i in range(upper):
             for j in range(lower):
-                self.prob.host_data[i * lower + j] = math.exp(logit.host_data[i * lower + j] - max)
-            mu = 0
-            for j in range(lower):
-                mu += self.prob.host_data[i * lower + j]
-            for j in range(lower):
-                self.prob.host_data[i * lower + j] /= mu
+                e = logit.host_data[i * lower + j] - max
+                prob = 1 / (1 + math.exp(e))
+                self.prob.host_data[i * lower + j] = prob
 
         # LOG FN
         log_like = zeros_like(logit)
         for i in range(upper):
             for j in range(lower):
-                log_like.host_data[i * lower + j] = -math.log(self.prob.host_data[i * lower + target.host_data[i]])
+                log = -math.log(self.prob.host_data[i * lower + target.host_data[i]])
+                log_like.host_data[i * lower + j] = log
 
         self.loss.host_data[0] = 0
         for x in range(logit.size):
-            self.loss.host_data[0] += logit.host_data[x] / self.batchsize
+            self.loss.host_data[0] += logit.host_data[x] / logit.size
 
         self.cache.append(logit)
         self.cache.append(target)

@@ -129,6 +129,7 @@ class ConvNd(Module):
         self.weight.reshape([-1, self.out_channels])
         matmul(self.weight.param, dy_reshaped, self.col.gradient)
         self._2vol(x.gradient.host_data)
+        self.col.T()
         return x
 
     def _2col(self, x: List[Union[float, int, bytes, bool]]):

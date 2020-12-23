@@ -84,6 +84,7 @@ class tensor(object):
         assert (_size == self.size)
         self.shape = shape
 
+
     def link(self, t) -> None:
         _gradients[id(self)] = id(t)
 

@@ -68,7 +68,6 @@ class mnist_model(nn.Module):
         self.relu4 = nn.ReLU()
 
     def forward(self, x):
-        print("=== Forward call ===")
         x = self.conv1(x)  # 32 x 28 x 28
         x = self.relu1(x)
         x = self.pool(x)  # 32 x 14 x 14
@@ -97,9 +96,6 @@ def train_loop(model=mnist_model()):
         logit = model(t_x[i])
         loss = loss_fn(logit, t_y[i])
         loss.backward()
-        print(i, logit.shape)
-        print(loss)
         optim.step()
-
-
+        print('===', i, logit.shape, loss.host_data)
 train_loop()

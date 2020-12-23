@@ -48,7 +48,9 @@ class Module(object):
         return self.forward_cpu(*args, **kwargs)
 
     def backward(self):
-        return self.backward_cpu()
+        dx = self.backward_cpu()
+        self.cache.clear()
+        return dx
 
     def forward_cpu(self, *args, **kwargs):
         raise NotImplementedError
@@ -57,25 +59,29 @@ class Module(object):
         pass
 
     def __call__(self, *args, **kwargs):
-        print(type(self), end=' ')
+        print(type(self), 'forward')
         y = self.forward(*args, **kwargs)
+        if isinstance(y, tuple) or isinstance(y, list):
+            for x in y:
+                self.visited[id(x)] = False
+        else:
+            self.visited[id(y)] = False
+        for x in args:
+            self.visited[id(x)] = False
 
         if not self.registered:
             if isinstance(y, tuple) or isinstance(y, list):
                 for x in y:
                     x.parent += [self]
-                    self.visited[id(x)] = False
             else:
                 y.parent += [self]
-                self.visited[id(y)] = False
             for x in args:
                 x.children += [self]
-                self.visited[id(x)] = False
             execution_order.append(self)
             self.registered = True
 
         if isinstance(y, tensor):
-            print(y.shape)
+            print('\t', y.shape)
         return y
 
     def parameters(self):
