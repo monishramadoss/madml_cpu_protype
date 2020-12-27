@@ -59,36 +59,25 @@ class _MaxPoolNd(Module):
                     self.stride[i]) + 1
                 self._vol[i] = x.shape[i + 2]
             self.batch_size = x.shape[0] * x.shape[1]
-        self._2col(x.host_data)
+
+        if self.col is None:
+            n_output_plane = self.in_channels
+            output_length = self.batch_size
+            self.col = zeros([n_output_plane, output_length])
 
         max_idx = [0 for i in range(self.col.shape[1])]
-        # ARGMAX
-        for i in range(self.col.shape[0]):
-            for j in range(self.col.shape[1]):
-                m = self.col.host_data[i * self.col.shape[1] + j]
-                n = self.col.host_data[max_idx[j] * self.col.shape[1] + j]
-                if n < m:
-                    max_idx[j] = i
-
-        # y = B[max_idx, range(max_idx.size)]
         y = zeros([x.shape[0], x.shape[1], *self._col])
-        for i in range(self.col.shape[1]):
-            idx = max_idx[i]
-            y.host_data[i] = self.col.host_data[idx * self.col.shape[1] + i]
+
         self.cache.append(x)
-        self.cache.append(max_idx)
         self.cache.append(y)
+        self.cache.append(max_idx)
         return y
 
     def backward_cpu(self) -> None:
-        x, max_idx, y = self.cache
-        # dy_col = np.transpose(y.gradient, (2, 3, 4, 0, 1)).ravel()  # (72128,)
+        x, y, max_idx = self.cache
+        dx, dy = x.gradient, y.gradient
+        assert(x.shape == dx.shape and dy.shape == y.shape)
 
-        # self.col.gradient[max_idx, range(dy_col.size)] = dy_col
-        for i in range(self.col.shape[1]):
-            idx = max_idx[i]
-            self.col.gradient.host_data[idx * self.col.shape[1] + i] = y.gradient.host_data[i]
-        self._2vol(x.gradient.host_data)
         return x
 
     def _2col(self, x: List[Union[float, int, bytes, bool]]):
@@ -102,9 +91,6 @@ class _MaxPoolNd(Module):
             output_length *= c
             index_length *= c
             _col *= c
-
-        if self.col is None:
-            self.col = zeros([n_output_plane, output_length])
 
         for elt in range(self.batch_size):
             data_col = elt * self.in_channels * self._vol[0] * self._vol[1] * self._vol[2]

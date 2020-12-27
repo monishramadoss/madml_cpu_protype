@@ -23,26 +23,32 @@ def _convert_to_float(size: int, arr: List[bytes]) -> List[float]:
 class tensor(object):
     shape: List[int]
     init_shape: List[int]
-    host_data: List[Union[float, int, bytes, bool]]
+    host_memory: np.ndarray
+    device_memory: List[Union[float, int, bytes, bool]]
     on_device: bool
+    id: int
 
     def __init__(self, data: Union[List[Union[float, int, bytes, bool]], np.ndarray], shape: List[int] = []) -> None:
         if isinstance(data, np.ndarray):
-            self.host_data = data.reshape(-1).tolist()
-            self.shape = data.shape
+            self.host_memory = data
+            self.shape = list(data.shape)
+            self.device_memory = [data.ravel()[i] for i in range(data.size)]
         else:
-            self.host_data = data
+            self.host_memory = np.array(data).reshape(shape)
             self.shape = shape
+            self.device_memory = [data[i] for i in range(len(data))]
+
         self.init_shape = self.shape
-        assert (len(self.shape) > 0)
         self.size = 1
         for s in self.shape:
             self.size *= s
-        assert len(self.host_data) == self.size
-        _tensors.append(id(self))
+
         self.on_device = False
         self.parent = []
         self.children = []
+        self.id = id(self)
+        assert (len(self.shape) > 0)
+        assert (self.host_memory.size == self.size)
 
     def __len__(self):
         return self.shape[0]
@@ -53,59 +59,51 @@ class tensor(object):
         return self
 
     def numpy(self):
-        return np.array(self.host_data).reshape(self.shape)
+        return self.host_memory
 
     def __getitem__(self, idx: int):
-        assert (self.size > idx)
-        new_shape = self.shape[1:]
-        new_size = 1
-        for s in new_shape:
-            new_size *= s
-        new_data = [self.host_data[idx * new_size + i] for i in range(new_size)]
+        assert (self.shape[0] > idx)
+        new_data = self.host_memory[idx]
+        new_shape = self.shape[:idx]
         return tensor(new_data, new_shape)
 
     def __setitem__(self, key: int, value) -> None:
         assert (self.size > key)
         assert (type(value) == type(self))
-        for i in range(value.size):
-            self.host_data[key * value.size + i] = value.host_data[i]
+        self.host_memory[key] = value.host_memory
 
     def copy(self):
-        return tensor(self.host_data, self.shape)
+        return tensor(self.host_memory, self.shape)
 
     def reshape(self, shape: List[int]):
-        _size = 1
-        for s in shape:
-            _size *= s
-        if _size < 0:
-            s = self.size // _size
-            shape[shape.index(-1)] = abs(s)
-            _size *= s
-        _size = abs(_size)
-        if _size != self.size:
-            print(_size, self.size)
-            assert (_size == self.size)
-
-        assert(_size == len(self.host_data) and self.size == len(self.host_data))
-        self.shape = shape
+        self.host_memory.reshape(shape)
+        self.shape = list(self.host_memory.shape)
 
     @property
     def gradient(self):
-        if id(self) not in _gradients.keys():
-            _gradients[id(self)] = tensor([0 for _ in range(self.size)], self.shape)
-        return _gradients[id(self)]
+        if self.id not in _gradients.keys():
+            _gradients[self.id] = tensor([0 for _ in range(self.size)], self.init_shape)
+        assert (self.size == _gradients[self.id].size)
+        return _gradients[self.id]
 
     @property
     def grad_data(self):
-        if id(self) not in _gradients.keys():
-            _gradients[id(self)] = tensor([0 for _ in range(self.size)], self.shape)
-        return _gradients[id(self)]
+        grad = self.gradient.host_data
+        return grad.ravel()
+
+    @property
+    def host_data(self):
+        return self.host_memory
+
+    @property
+    def device_data(self):
+        return self.device_memory
 
     def backward(self):
         for x in reversed(self.parent):
-            if not x.visited[id(self)]:
+            if not x.visited[self.id]:
                 y = x.backward()
-                x.visited[id(self)] = True
+                x.visited[self.id] = True
                 if isinstance(y, tensor):
                     y.backward()
         self.parent.clear()
@@ -113,14 +111,18 @@ class tensor(object):
         return
 
     def numpy(self):
-        return np.array(self.host_data).reshape(self.shape)
+        return self.host_memory
 
     def reset(self):
         self.shape = self.init_shape
+        if self.id in _gradients.keys():
+            self.gradient.reshape(self.init_shape)
 
     def flatten(self):
         s = 1
         for S in self.shape[1:]:
             s *= S
         self.reshape([self.shape[0], s])
-        self.gradient.reshape([self.shape[0], s])
+        assert (self.shape[0] * s == self.size)
+        if self.id in _gradients.keys():
+            self.gradient.reshape(self.init_shape)

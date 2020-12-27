@@ -17,10 +17,6 @@ def _size(shape: List[int]) -> int:
     return size
 
 
-def regularization(reg_type='l2', lam=1e-3):
-    return 1
-
-
 class _Loss(Module):
     reduction: str
 
@@ -45,65 +41,23 @@ class CrossEntropyLoss(_WeightedLoss):
     def __init__(self, weight=None, size_average=None, ignore_index: int = -100,
                  reduce=None, reduction: str = 'mean') -> None:
         super(CrossEntropyLoss, self).__init__(weight, size_average, reduce, reduction)
-        self.args = None
         self.ignore_index = ignore_index
-        self.exps = None
         self.loss = tensor([0], [1])
         self.batchsize = 1
 
     def forward_cpu(self, logit: tensor, target: tensor) -> tensor:
         self.batchsize = logit.shape[0]
-        if self.args is None:
-            pass
 
-        # MAX
-        max = [0 for i in range(logit.shape[0])]
-        for i in range(logit.shape[0]):
-            for j in range(logit.shape[1]):
-                max[i] = logit.host_data[i * logit.shape[1] + j] if logit.host_data[i * logit.shape[1] + j] > max[i] else max[i]
-
-        # REDUCE_SUM
-        reduce_sum = zeros(logit.shape[:1])
-        upper = _size(logit.shape[:1])
-        lower = _size(logit.shape[1:])
-        for i in range(upper):
-            acc = 0
-            for j in range(lower):
-                acc += logit.host_data[i * lower + j]
-            reduce_sum.host_data[i] = acc
-
-        # PROBABILITY
-        self.prob = zeros_like(logit)
-        for i in range(upper):
-            for j in range(lower):
-                e = logit.host_data[i * lower + j] - max[i]
-                prob = 1 / (1 + math.exp(e))
-                self.prob.host_data[i * lower + j] = prob
-
-        # LOG FN
-        log_like = zeros_like(logit)
-        for i in range(upper):
-            for j in range(lower):
-                log = -math.log(self.prob.host_data[i * lower + target.host_data[i]])
-                log_like.host_data[i * lower + j] = log
-
-        self.loss.host_data[0] = 0
-        for x in range(logit.size):
-            self.loss.host_data[0] += logit.host_data[x] / logit.size
-
+        prob = zeros_like(logit)
         self.cache.append(logit)
         self.cache.append(target)
+        self.cache.append(prob)
         return self.loss
 
     def backward_cpu(self) -> tensor:
-        logit, target = self.cache
-        self.visited[id(self.loss)] = True
-        self.visited[id(target)] = True
-        upper = _size(logit.shape[:1])
-        lower = _size(logit.shape[1:])
-
-        for i in range(upper):
-            self.prob.host_data[i * lower + target.host_data[i]] -= 1.
-            self.prob.host_data[i * lower + target.host_data[i]] /= self.batchsize
-
-        return logit
+        x, t, p = self.cache
+        self.visited[self.loss.id] = True
+        self.visited[t.id] = True
+        dx = x.gradient
+        assert(dx.size == x.size)
+        return x

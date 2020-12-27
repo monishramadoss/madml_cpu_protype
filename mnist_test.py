@@ -57,12 +57,11 @@ class mnist_model(nn.Module):
         super(mnist_model, self).__init__()
         self.conv1 = nn.Conv2d(1, 32, 3, padding=1)
         self.pool = nn.MaxPool2d(2, 2)
-        self.conv2 = nn.Conv2d(32, 46, 3)
-        self.fc1 = nn.Linear(46 * 12 * 12, 120)
+        self.conv2 = nn.Conv2d(32, 10, 3)
+        self.fc1 = nn.Linear(10 * 12 * 12, 120)
         self.fc2 = nn.Linear(120, 84)
         self.fc3 = nn.Linear(84, 10)
         self.relu1 = nn.ReLU()
-
         self.relu2 = nn.ReLU()
         self.relu3 = nn.ReLU()
         self.relu4 = nn.ReLU()
@@ -74,14 +73,16 @@ class mnist_model(nn.Module):
         x = self.conv2(x)  # 46 x 12 x 12
         x = self.relu2(x)
         x.flatten()
-        x = self.relu3(self.fc1(x))
-        x = self.relu4(self.fc2(x))
+        x = self.fc1(x)
+        x = self.relu3(x)
+        x = self.fc2(x)
+        x = self.relu4(x)
         x = self.fc3(x)
         return x
 
 
 def train_loop(model=mnist_model()):
-    batchsize = 32
+    batchsize = 16
     x, y, x1, y1 = load()
     x = x.reshape((-1, batchsize, 1, 1, 28, 28))
     x1 = x1.reshape((-1, 1, 1, 1, 28, 28))
@@ -96,6 +97,6 @@ def train_loop(model=mnist_model()):
         logit = model(t_x[i])
         loss = loss_fn(logit, t_y[i])
         loss.backward()
-        #optim.step()
+        optim.step()
         print('===', i, logit.shape, loss.host_data)
 train_loop()

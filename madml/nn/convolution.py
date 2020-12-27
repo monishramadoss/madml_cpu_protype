@@ -23,7 +23,7 @@ def _dim_fix(arr, arg_arr, pi):
 
 
 def matmul(x: tensor, w: tensor, y: tensor):
-    assert(x.shape[1] == w.shape[0])
+    assert (x.shape[1] == w.shape[0])
     for m in range(x.shape[0]):
         for n in range(w.shape[1]):
             acc = 0
@@ -92,8 +92,12 @@ class ConvNd(Module):
             weight_shape = [out_channels, in_channels // groups, *self.kernel_size]
         self.weight = Parameter(xavier_uniform(), weight_shape)
 
-    def forward_cpu(self, x: tensor) -> tensor:
+        self.n_output_plane = self.in_channels
+        for k in self.kernel_size:
+            self.n_output_plane *= k
+        self.output_length = 1
 
+    def forward_cpu(self, x: tensor) -> tensor:
         if self._col == [] or self._vol == []:
             self._col = [1 for _ in range(self.dims)]
             self._vol = [1 for _ in range(self.dims)]
@@ -104,53 +108,36 @@ class ConvNd(Module):
                     self.stride[i]) + 1
                 self._vol[i] = x.shape[i + 2]
             self.batch_size = x.shape[0]
-        y = zeros([self.batch_size, self.out_channels, *self._col])
-        self._2col(x.host_data)
-        self.weight.reshape([-1, self.col.shape[0]])
-        matmul(self.weight.param, self.col, y)
+            self.output_length = self.batch_size
 
-        if self._use_bias:
-            if self.bias is None:
-                self.bias = Parameter(zeros, y.shape[1:])
-            bs = self.bias.size
-            for b in range(y.shape[0]):
-                for i in range(bs):
-                    y.host_data[b * bs + i] += self.bias.param.host_data[i]
+            for c in self._col:
+                self.output_length *= c
+
+        if self.col is None:
+            self.col = zeros([self.n_output_plane, self.output_length])
+
+        y = zeros([self.batch_size, self.out_channels, *self._col])
+
         self.cache.append(x)
         self.cache.append(y)
         return y
 
     def backward_cpu(self) -> tensor:
         x, y = self.cache
-        self.col.T()
-        y.gradient.reshape([self.out_channels, -1])
-        print(y.gradient.shape)
+        dx, dy = x.gradient, y.gradient
+        dc = self.col.gradient
+        assert(x.size == dx.size and dy.size == y.size and dc == self.col.gradient)
 
-        matmul(y.gradient, self.col, self.weight.param.gradient)
-        self.weight.reshape([-1, self.out_channels])
-        matmul(self.weight.param, y.gradient, self.col.gradient)
-        self._2vol(x.gradient.host_data)
-
-        self.col.reset()
-        self.weight.param.reset()
-        y.gradient.reset()
         return x
 
     def _2col(self, x: List[Union[float, int, bytes, bool]]):
-        n_output_plane = self.in_channels
-        output_length = self.batch_size
+        n_output_plane = self.n_output_plane
         index_length = self.in_channels
         _col_size = 1
 
-        for k in self.kernel_size:
-            n_output_plane *= k
         for c in self._col:
-            output_length *= c
             index_length *= c
             _col_size *= c
-
-        if self.col is None:
-            self.col = zeros([n_output_plane, output_length])
 
         for elt in range(self.batch_size):
             data_col = elt * self.in_channels * self._vol[0] * self._vol[1] * self._vol[2]

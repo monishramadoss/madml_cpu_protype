@@ -30,7 +30,7 @@ class Parameter(object):
 
     def zero_grad(self, ) -> None:
         for i in range(self.param.size):
-            self.param.grad_data.host_data[i] = 0
+            self.param.grad_data[i] = 0
 
     def reshape(self, shape: List[int]) -> None:
         self.param.reshape(shape)
@@ -42,7 +42,8 @@ class Module(object):
         self.backend = backend
         self.registered = False
         self.visited = {}
-        module_cache[id(self)] = self
+        self.id = id(self)
+        module_cache[self.id] = self
 
     def forward(self, *args, **kwargs):
         return self.forward_cpu(*args, **kwargs)
@@ -50,10 +51,7 @@ class Module(object):
     def backward(self):
         print(type(self), 'backward')
         dx = self.backward_cpu()
-
         if isinstance(dx, tensor):
-            dx.reset()
-            dx.gradient.reset()
             print('\t', dx.shape)
         return dx
 
@@ -70,14 +68,18 @@ class Module(object):
 
         if isinstance(y, tuple) or isinstance(y, list):
             for x in y:
-                self.visited[id(x)] = False
-                x.parent += [self]
+                self.visited[x.id] = False
+                if self not in x.parent:
+                    x.parent += [self]
         else:
-            self.visited[id(y)] = False
-            y.parent += [self]
+            self.visited[y.id] = False
+            if self not in y.parent:
+                y.parent += [self]
         for x in args:
-            self.visited[id(x)] = False
-            x.children += [self]
+            self.visited[x.id] = False
+            if self not in x.children:
+                x.children += [self]
+
         if not self.registered:
             execution_order.append(self)
             self.registered = True
