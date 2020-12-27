@@ -8,8 +8,6 @@ from typing import List, Union
 import numpy as np
 
 # from .nn.module import module_cache, execution_order
-_gradients = {}
-_tensors = []
 
 
 def _convert_to_float(size: int, arr: List[bytes]) -> List[float]:
@@ -46,7 +44,8 @@ class tensor(object):
         self.on_device = False
         self.parent = []
         self.children = []
-        self.id = id(self)
+
+        self.grad = None
         assert (len(self.shape) > 0)
         assert (self.host_memory.size == self.size)
 
@@ -81,10 +80,10 @@ class tensor(object):
 
     @property
     def gradient(self):
-        if self.id not in _gradients.keys():
-            _gradients[self.id] = tensor([0 for _ in range(self.size)], self.init_shape)
-        assert (self.size == _gradients[self.id].size)
-        return _gradients[self.id]
+        if self.grad is None:
+            self.grad = tensor([0 for _ in range(self.size)], self.init_shape)
+        assert (self.size == self.grad.size)
+        return self.grad
 
     @property
     def grad_data(self):
@@ -115,8 +114,8 @@ class tensor(object):
 
     def reset(self):
         self.shape = self.init_shape
-        if self.id in _gradients.keys():
-            self.gradient.reshape(self.init_shape)
+        if self.grad is not None:
+            self.grad.reshape(self.init_shape)
 
     def flatten(self):
         s = 1
@@ -124,5 +123,5 @@ class tensor(object):
             s *= S
         self.reshape([self.shape[0], s])
         assert (self.shape[0] * s == self.size)
-        if self.id in _gradients.keys():
-            self.gradient.reshape(self.init_shape)
+        if self.grad is not None:
+            self.grad.reshape(self.init_shape)
