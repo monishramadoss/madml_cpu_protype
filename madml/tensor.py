@@ -21,20 +21,21 @@ def _convert_to_float(size: int, arr: List[bytes]) -> List[float]:
 class tensor(object):
     shape: List[int]
     init_shape: List[int]
-    host_memory: np.ndarray
-    device_memory: List[Union[float, int, bytes, bool]]
+    _host_memory: np.ndarray
+    _device_memory: List[Union[float, int, bytes, bool]]
     on_device: bool
     id: int
 
-    def __init__(self, data: Union[List[Union[float, int, bytes, bool]], np.ndarray], shape: List[int] = []) -> None:
+    def __init__(self, data: Union[List[Union[float, int, bytes, bool]], np.ndarray], shape: List[int] = [],
+                 requires_grad: bool=True) -> None:
         if isinstance(data, np.ndarray):
-            self.host_memory = data
+            self._host_memory = data.astype(np.float32)
             self.shape = list(data.shape)
-            self.device_memory = [data.ravel()[i] for i in range(data.size)]
+            self._device_memory = [data.ravel()[i] for i in range(data.size)]
         else:
-            self.host_memory = np.array(data).reshape(shape)
+            self._host_memory = np.array(data).reshape(shape).astype(np.float32)
             self.shape = shape
-            self.device_memory = [data[i] for i in range(len(data))]
+            self._device_memory = [data[i] for i in range(len(data))]
 
         self.init_shape = self.shape
         self.size = 1
@@ -44,61 +45,84 @@ class tensor(object):
         self.on_device = False
         self.parent = []
         self.children = []
-
-        self.grad = None
+        self.id = id(self)
+        if requires_grad:
+            self._grad = tensor([0 for i in range(self.size)], self.shape, requires_grad=False)
+        else:
+            self._grad = None
         assert (len(self.shape) > 0)
-        assert (self.host_memory.size == self.size)
+        assert (self._host_memory.size == self.size)
+
+    def __copy__(self):
+        new = tensor(self.data, self.init_shape)
+        new._grad = self._grad
+        return new
 
     def __len__(self):
         return self.shape[0]
 
     def T(self):
         assert len(self.shape) == 2
-        self.shape = [self.shape[1], self.shape[0]]
+        self._host_memory = self._host_memory.T
+        self.shape = list(self._host_memory.shape)
         return self
 
-    def numpy(self):
-        return self.host_memory
+    def numpy(self) -> np.ndarray:
+        return self._host_memory
 
     def __getitem__(self, idx: int):
         assert (self.shape[0] > idx)
-        new_data = self.host_memory[idx]
+        new_data = self._host_memory[idx]
         new_shape = self.shape[:idx]
         return tensor(new_data, new_shape)
 
     def __setitem__(self, key: int, value) -> None:
         assert (self.size > key)
         assert (type(value) == type(self))
-        self.host_memory[key] = value.host_memory
+        self._host_memory[key] = value.host_data
 
     def copy(self):
-        return tensor(self.host_memory, self.shape)
+        return tensor(self._host_memory, self.shape)
 
-    def reshape(self, shape: List[int]):
-        self.host_memory.reshape(shape)
-        self.shape = list(self.host_memory.shape)
+    def reshape(self, shape: List[int]) -> None:
+        self._host_memory = self._host_memory.reshape(shape)
+        assert(self._host_memory.size == self.size)
+        self.shape = list(self._host_memory.shape)
 
     @property
     def gradient(self):
-        if self.grad is None:
-            self.grad = tensor([0 for _ in range(self.size)], self.init_shape)
-        assert (self.size == self.grad.size)
-        return self.grad
+        return self._grad
+
+    @gradient.setter
+    def gradient(self, value) -> None:
+        assert(type(value) == type(self))
+        assert(self._grad.size == value.size)
+        self._grad = value
 
     @property
-    def grad_data(self):
-        grad = self.gradient.host_data
-        return grad.ravel()
+    def grad_data(self) -> np.ndarray:
+        _grad = self.gradient.host_data
+        return _grad.ravel()
 
     @property
-    def host_data(self):
-        return self.host_memory
+    def host_data(self) -> np.ndarray:
+        return self._host_memory
+
+    @host_data.setter
+    def host_data(self, value: np.ndarray) -> None:
+        assert(value.size == self._host_memory.size)
+        self.shape = list(value.shape)
+        self._host_memory = value
 
     @property
-    def device_data(self):
-        return self.device_memory
+    def device_data(self) -> np.array:
+        return self._device_memory
 
-    def backward(self):
+    @device_data.setter
+    def device_data(self, value: np.ndarray) -> None:
+        raise NotImplementedError
+
+    def backward(self) -> None:
         for x in reversed(self.parent):
             if not x.visited[self.id]:
                 y = x.backward()
@@ -107,21 +131,18 @@ class tensor(object):
                     y.backward()
         self.parent.clear()
         self.children.clear()
-        return
 
-    def numpy(self):
-        return self.host_memory
-
-    def reset(self):
+    def reset(self) -> None:
+        self._host_memory = self._host_memory.reshape(self.init_shape)
         self.shape = self.init_shape
-        if self.grad is not None:
-            self.grad.reshape(self.init_shape)
+        if self._grad is not None:
+            self._grad.reshape(self.init_shape)
 
-    def flatten(self):
-        s = 1
-        for S in self.shape[1:]:
-            s *= S
-        self.reshape([self.shape[0], s])
-        assert (self.shape[0] * s == self.size)
-        if self.grad is not None:
-            self.grad.reshape(self.init_shape)
+    def flatten(self) -> None:
+        self.reshape([self.shape[0], -1])
+        if self._grad is not None:
+            self._grad.reshape(self.init_shape)
+
+    def transpose(self, axis: List[int]) -> None:
+        self._host_memory = self._host_memory.transpose(axis)
+        self.shape = list(self._host_memory.shape)

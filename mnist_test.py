@@ -99,4 +99,9 @@ def train_loop(model=mnist_model()):
         loss.backward()
         optim.step()
         print('===', i, logit.shape, loss.host_data)
+        if loss.host_data.all() < 4.0:
+            print(logit.host_data[0])
+            print(t_y[i].host_data[0])
+            break
+
 train_loop()

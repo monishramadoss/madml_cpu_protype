@@ -18,7 +18,7 @@ def _size(shape: List[int]) -> int:
 
 
 def zeros(shape: List[int]) -> tensor:
-    data = [0 for _ in range(_size(shape))]
+    data = [0.0 for _ in range(_size(shape))]
     return tensor(data, shape)
 
 
@@ -27,7 +27,7 @@ def zeros_like(t: tensor) -> tensor:
 
 
 def ones(shape: List[int]) -> tensor:
-    data = [1 for _ in range(_size(shape))]
+    data = [1.0 for _ in range(_size(shape))]
     return tensor(data, shape)
 
 

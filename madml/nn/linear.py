@@ -5,7 +5,7 @@ from __future__ import unicode_literals
 
 from madml import tensor, normal, zeros
 from .module import Module, Parameter
-
+import numpy as np
 
 
 class Linear(Module):
@@ -22,6 +22,11 @@ class Linear(Module):
 
     def forward_cpu(self, x: tensor) -> tensor:
         y = zeros([x.shape[0], self.out_features])
+
+        y.host_data = x.host_data @ self.weight.param.host_data
+        if self.bias is not None:
+            y.host_data += self.bias.param.host_data
+
         self.cache.append(x)
         self.cache.append(y)
         return y
@@ -29,5 +34,10 @@ class Linear(Module):
     def backward_cpu(self) -> tensor:
         x, y = self.cache
         dx, dy = x.gradient, y.gradient
-        assert(x.size == dx.size and dy.size == y.size)
+
+        if self.bias is not None:
+            self.bias.param.gradient.host_data = np.sum(dy.host_data, axis=0)
+
+        self.weight.param.gradient.host_data = x.host_data.T @ y.gradient.host_data
+        x.gradient.host_data = y.gradient.host_data @ self.weight.param.host_data.T
         return x

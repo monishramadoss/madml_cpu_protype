@@ -3,7 +3,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from typing import List
+from typing import List, Dict
 
 from madml import tensor, zeros
 
@@ -15,6 +15,7 @@ module_cache = {}
 parameter_cache = {}
 execution_order = []
 DEBUG = False
+
 
 class Parameter(object):
     param: tensor
@@ -49,10 +50,13 @@ class Module(object):
         return self.forward_cpu(*args, **kwargs)
 
     def backward(self):
-        print(type(self), 'backward')
+        # print(type(self), 'backward')
+        # for x in self.cache:
+        #     if isinstance(x, tensor):
+        #         print(x.gradient.host_data.max(), end=' ')
         dx = self.backward_cpu()
-        if isinstance(dx, tensor):
-            print('\t', dx.shape)
+        # if isinstance(dx, tensor):
+        #     print('\t', dx.shape, dx.host_data.max())
         return dx
 
     def forward_cpu(self, *args, **kwargs):
@@ -62,7 +66,7 @@ class Module(object):
         pass
 
     def __call__(self, *args, **kwargs):
-        print(type(self), 'forward')
+        # print(type(self), 'forward')
         self.cache.clear()
         y = self.forward(*args, **kwargs)
 
@@ -84,9 +88,10 @@ class Module(object):
             execution_order.append(self)
             self.registered = True
 
-        if isinstance(y, tensor):
-            print('\t', y.shape)
+        # if isinstance(y, tensor):
+        #      print('\t', y.shape, y.host_data.max())
         return y
 
-    def parameters(self):
+    def parameters(self) -> Dict[int, Parameter]:
+        x = self.id
         return parameter_cache

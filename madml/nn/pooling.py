@@ -7,6 +7,8 @@ from typing import Union, List, Optional
 
 from madml import tensor, zeros
 from .module import Module
+from .transform import vol2col
+import numpy as np
 
 
 def _dim_fix(arr, arg_arr, pi):
@@ -44,11 +46,10 @@ class _MaxPoolNd(Module):
         self._vol = []
         self.batch_size = 0
         self.in_channels = 1
-        self.vol = None
         self.col = None
+        self.kernel = None
 
     def forward_cpu(self, x: tensor) -> tensor:
-
         if self._col == [] or self._vol == []:
             self._col = [1 for _ in range(self.dims)]
             self._vol = [1 for _ in range(self.dims)]
@@ -59,15 +60,16 @@ class _MaxPoolNd(Module):
                     self.stride[i]) + 1
                 self._vol[i] = x.shape[i + 2]
             self.batch_size = x.shape[0] * x.shape[1]
-
-        if self.col is None:
-            n_output_plane = self.in_channels
-            output_length = self.batch_size
-            self.col = zeros([n_output_plane, output_length])
-
-        max_idx = [0 for i in range(self.col.shape[1])]
+            self.kernel = vol2col(self.batch_size, self.in_channels, self._vol, self._col, self.kernel_size,
+                                  self.stride, self.padding, self.dilation)
         y = zeros([x.shape[0], x.shape[1], *self._col])
 
+        self.col = self.kernel.forward_cpu(x)
+        max_idx = np.argmax(self.col.host_data, axis=0)
+        y.host_data = self.col.host_data[max_idx, range(max_idx.size)]
+
+        y.reshape([self.in_channels, self.batch_size, self._col[0], self._col[1], self._col[2], ])
+        y.transpose([1, 0, 2, 3, 4])
         self.cache.append(x)
         self.cache.append(y)
         self.cache.append(max_idx)
@@ -76,78 +78,10 @@ class _MaxPoolNd(Module):
     def backward_cpu(self) -> None:
         x, y, max_idx = self.cache
         dx, dy = x.gradient, y.gradient
-        assert(x.shape == dx.shape and dy.shape == y.shape)
-
+        dy_col = dy.host_data.ravel()
+        self.col.gradient.host_data[max_idx, range(dy_col.size)] = dy_col
+        _ = self.kernel.backward_cpu()
         return x
-
-    def _2col(self, x: List[Union[float, int, bytes, bool]]):
-        n_output_plane = self.in_channels
-        output_length = self.batch_size
-        index_length = self.in_channels
-        _col = 1
-        for k in self.kernel_size:
-            n_output_plane *= k
-        for c in self._col:
-            output_length *= c
-            index_length *= c
-            _col *= c
-
-        for elt in range(self.batch_size):
-            data_col = elt * self.in_channels * self._vol[0] * self._vol[1] * self._vol[2]
-            data_vol = elt * n_output_plane * self._col[0] * self._col[1] * self._col[2]
-            for index in range(index_length):
-                w_offset = index % self.kernel_size[2]
-                h_offset = (index / self.kernel_size[2]) % self.kernel_size[1]
-                d_offset = (index / self.kernel_size[2] / self.kernel_size[1]) % self.kernel_size[0]
-                c_vol = int(index / self.kernel_size[2] / self.kernel_size[1] / self.kernel_size[0])
-                for d_col in range(self._col[0]):
-                    d_vol = d_col * self.stride[0] - self.padding[0] + d_offset * self.dilation[0]
-                    for h_col in range(self._col[1]):
-                        h_vol = h_col * self.stride[1] - self.padding[1] + h_offset * self.dilation[1]
-                        for w_col in range(self._col[2]):
-                            w_vol = w_col * self.stride[2] - self.padding[2] + w_offset * self.dilation[2]
-                            if (0 <= d_vol < self._vol[0] and 0 <= h_vol < self._vol[
-                                1] and 0 <= w_vol < self._vol[2]):
-                                data_vol_idx = data_vol + ((c_vol * self._vol[0] + d_vol) * self._vol[1] + h_vol) * \
-                                               self._vol[2] + w_vol
-                                data_col_idx = data_col + ((index * self._col[0] + d_col) * self._col[1] + h_col) * \
-                                               self._col[2] + w_col
-                                if data_vol_idx < len(x) and data_col_idx < self.col.size:
-                                    self.col.host_data[int(data_col_idx)] = x[int(data_vol_idx)]
-
-    def _2vol(self, x: List[Union[float, int, bytes, bool]]):
-        n_output_plane = self.in_channels
-        output_length = self.batch_size
-        index_length = self.in_channels
-
-        for k in self.kernel_size:
-            n_output_plane *= k
-        for c in self._col:
-            output_length *= c
-            index_length *= c
-
-        for elt in range(self.batch_size):
-            data_col = elt * self.in_channels * self._vol[0] * self._vol[1] * self._vol[2]
-            data_vol = elt * n_output_plane * self._col[0] * self._col[1] * self._col[2]
-            for index in range(index_length):
-                w_offset = index % self.kernel_size[2]
-                h_offset = (index / self.kernel_size[2]) % self.kernel_size[1]
-                d_offset = (index / self.kernel_size[2] / self.kernel_size[1]) % self.kernel_size[0]
-                c_vol = int(index / self.kernel_size[2] / self.kernel_size[1] / self.kernel_size[0])
-                for d_col in range(self._col[0]):
-                    d_vol = d_col * self.stride[0] - self.padding[0] + d_offset * self.dilation[0]
-                    for h_col in range(self._col[1]):
-                        h_vol = h_col * self.stride[1] - self.padding[1] + h_offset * self.dilation[1]
-                        for w_col in range(self._col[2]):
-                            w_vol = w_col * self.stride[2] - self.padding[2] + w_offset * self.dilation[2]
-                            if (0 <= d_vol < self._vol[0] and 0 <= h_vol < self._vol[
-                                1] and 0 <= w_vol < self._vol[2]):
-                                data_vol_idx = data_vol + ((c_vol * self._vol[0] + d_vol) * self._vol[1] + h_vol) * \
-                                               self._vol[2] + w_vol
-                                data_col_idx = data_col + ((index * self._col[0] + d_col) * self._col[1] + h_col) * \
-                                               self._col[2] + w_col
-                                if data_col_idx < len(x) and data_vol_idx < self.col.size:
-                                    x[int(data_col_idx)] += self.col.gradient.host_data[int(data_vol_idx)]
 
 
 class MaxPool1d(_MaxPoolNd):
