@@ -88,6 +88,8 @@ class tensor(object):
         self._host_memory = self._host_memory.reshape(shape)
         assert(self._host_memory.size == self.size)
         self.shape = list(self._host_memory.shape)
+        if self._grad is not None:
+            self._grad.reshape(self.shape)
 
     @property
     def gradient(self):

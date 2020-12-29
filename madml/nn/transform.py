@@ -4,7 +4,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 from typing import List
-
+import math
 import numba.typed as nbt
 import numpy as np
 from numba import njit, prange
@@ -125,14 +125,14 @@ def _vol2col(vol: np.ndarray, col: np.ndarray, batch_size: int, in_channels: int
              index_length: int,
              _vol: nbt.List, _col: nbt.List, kernel_size: nbt.List, stride: nbt.List, padding: nbt.List,
              dilation: nbt.List):
-    for elt in range(batch_size):
-        data_col = elt * in_channels * _col[0] * _col[1] * _col[2]
-        data_vol = elt * n_output_plane * _vol[0] * _vol[1] * _vol[2]
-        for index in prange(n_output_plane):
-            w_offset = index % kernel_size[2]
-            h_offset = (index / kernel_size[2]) % kernel_size[1]
-            d_offset = (index / kernel_size[2] / kernel_size[1]) % kernel_size[0]
-            c_vol = int(index / kernel_size[2] / kernel_size[1] / kernel_size[0])
+    for elt in prange(batch_size):
+        data_vol = elt * in_channels * _vol[0] * _vol[1] * _vol[2]
+        data_col = elt * n_output_plane * _col[0] * _col[1] * _col[2]
+        for c_col in range(index_length):
+            w_offset = c_col % kernel_size[2]
+            h_offset = int(c_col / kernel_size[2]) % kernel_size[1]
+            d_offset = int(c_col / kernel_size[2] / kernel_size[1]) % kernel_size[0]
+            c_vol = int(c_col / kernel_size[2] / kernel_size[1] / kernel_size[0])
             for d_col in range(_col[0]):
                 d_vol = d_col * stride[0] - padding[0] + d_offset * dilation[0]
                 for h_col in range(_col[1]):
@@ -140,12 +140,16 @@ def _vol2col(vol: np.ndarray, col: np.ndarray, batch_size: int, in_channels: int
                     for w_col in range(_col[2]):
                         w_vol = w_col * stride[2] - padding[2] + w_offset * dilation[2]
                         if 0 <= d_vol < _vol[0] and 0 <= h_vol < _vol[1] and 0 <= w_vol < _vol[2]:
-                            data_vol_idx = int(data_vol + (((c_vol * _vol[0] + d_vol) * _vol[1] + h_vol)
-                                                           * _vol[2] + w_vol))
-                            data_col_idx = int(data_col + (((index * _col[0] + d_col) * _col[1] + h_col)
-                                                           * _col[2] + w_col))
+                            data_vol_idx = math.floor(data_vol + (((c_vol * _vol[0] + d_vol)
+                                                                   * _vol[1] + h_vol)
+                                                                  * _vol[2] + w_vol))
+                            data_col_idx = math.floor(data_col + (((c_col * _col[0] + d_col)
+                                                                   * _col[1] + h_col)
+                                                                  * _col[2] + w_col))
+                            data_vol_idx = int(data_vol_idx)
+                            data_col_idx = int(data_col_idx)
                             if data_col_idx < col.size and data_vol_idx < vol.size:
-                                col[int(data_col_idx)] = vol[int(data_vol_idx)]
+                                col[data_col_idx] = vol[data_vol_idx]
 
 
 @njit(parallel=True)
@@ -153,14 +157,14 @@ def _col2vol(vol: np.ndarray, col: np.ndarray, batch_size: int, in_channels: int
              index_length: int,
              _vol: nbt.List, _col: nbt.List, kernel_size: nbt.List, stride: nbt.List, padding: nbt.List,
              dilation: nbt.List):
-    for elt in range(batch_size):
-        data_col = elt * in_channels * _col[0] * _col[1] * _col[2]
-        data_vol = elt * n_output_plane * _vol[0] * _vol[1] * _vol[2]
-        for index in prange(index_length):
-            w_offset = index % kernel_size[2]
-            h_offset = (index / kernel_size[2]) % kernel_size[1]
-            d_offset = (index / kernel_size[2] / kernel_size[1]) % kernel_size[0]
-            c_vol = int(index / kernel_size[2] / kernel_size[1] / kernel_size[0])
+    for elt in prange(batch_size):
+        data_vol = elt * in_channels * _vol[0] * _vol[1] * _vol[2]
+        data_col = elt * n_output_plane * _col[0] * _col[1] * _col[2]
+        for c_col in range(index_length):
+            w_offset = c_col % kernel_size[2]
+            h_offset = int(c_col / kernel_size[2]) % kernel_size[1]
+            d_offset = int(c_col / kernel_size[2] / kernel_size[1]) % kernel_size[0]
+            c_vol = int(c_col / kernel_size[2] / kernel_size[1] / kernel_size[0])
             for d_col in range(_col[0]):
                 d_vol = d_col * stride[0] - padding[0] + d_offset * dilation[0]
                 for h_col in range(_col[1]):
@@ -168,9 +172,13 @@ def _col2vol(vol: np.ndarray, col: np.ndarray, batch_size: int, in_channels: int
                     for w_col in range(_col[2]):
                         w_vol = w_col * stride[2] - padding[2] + w_offset * dilation[2]
                         if 0 <= d_vol < _vol[0] and 0 <= h_vol < _vol[1] and 0 <= w_vol < _vol[2]:
-                            data_vol_idx = int(data_vol + (((c_vol * _vol[0] + d_vol) * _vol[1] + h_vol)
-                                                           * _vol[2] + w_vol))
-                            data_col_idx = int(data_col + (((index * _col[0] + d_col) * _col[1] + h_col)
-                                                           * _col[2] + w_col))
+                            data_vol_idx = math.floor(data_vol + (((c_vol * _vol[0] + d_vol)
+                                                                   * _vol[1] + h_vol)
+                                                                  * _vol[2] + w_vol))
+                            data_col_idx = math.floor(data_col + (((c_col * _col[0] + d_col)
+                                                                   * _col[1] + h_col)
+                                                                  * _col[2] + w_col))
+                            data_vol_idx = int(data_vol_idx)
+                            data_col_idx = int(data_col_idx)
                             if data_col_idx < col.size and data_vol_idx < vol.size:
-                                vol[int(data_vol_idx)] += col[int(data_col_idx)]
+                                vol[data_vol_idx] += col[data_col_idx]

@@ -5,7 +5,7 @@ from __future__ import unicode_literals
 
 from typing import Union, List, Optional
 
-from madml import tensor, xavier_uniform, zeros
+from madml import tensor, xavier_uniform, zeros, ones
 from .module import Module, Parameter
 from .transform import transpose, vol2col
 import numpy as np
@@ -93,7 +93,7 @@ class ConvNd(Module):
             weight_shape = [in_channels, out_channels // groups, *self.kernel_size]
         else:
             weight_shape = [out_channels, in_channels // groups, *self.kernel_size]
-        self.weight = Parameter(xavier_uniform(), weight_shape)
+        self.weight = Parameter(ones, weight_shape)
         self.kernel = None
 
     def forward_cpu(self, x: tensor) -> tensor:
@@ -113,11 +113,11 @@ class ConvNd(Module):
             if self._use_bias and self.bias is not None:
                 self.bias = Parameter(zeros, [self.out_channels, *self._col])
         y = zeros([self.batch_size, self.out_channels, *self._col])
-
         self.col = self.kernel.forward_cpu(x)
         self.weight.param.reshape([self.weight.param.shape[0], -1])
-        y.host_data = self.weight.param.host_data @ self.col.host_data
-        y.reshape([self.out_channels, self.batch_size, self._col[0], self._col[1], self._col[2], ])
+        y.host_data = np.matmul(self.weight.param.host_data, self.col.host_data)
+
+        y.reshape([self.out_channels, self.batch_size, self._col[0], self._col[1], self._col[2]])
         y.transpose([1, 0, 2, 3, 4])
         if self._use_bias and self.bias is not None:
             y.host_data += self.bias.param.host_data
@@ -141,7 +141,6 @@ class ConvNd(Module):
         w_reshaped = self.weight.param.host_data.reshape([self.out_channels, -1])
         dc.host_data = w_reshaped.T @ dy_reshaped
         _ = self.kernel.backward_cpu()
-
         return x
 
 
@@ -159,6 +158,21 @@ class Conv1d(ConvNd):
         super(Conv1d, self).__init__(1, in_channels, out_channels, kernel_size, stride, padding, dilation, False, 0,
                                      groups, bias, padding_mode)
 
+    def forward_cpu(self, x: tensor) -> tensor:
+        x.reshape([x.shape[0], x.shape[1], 1, 1, x.shape[2]])
+        y = super(Conv1d, self).forward_cpu(x)
+        x.reset()
+        y.reshape([x.shape[0], y.shape[1], y.shape[4]])
+        return y
+
+    def backward_cpu(self):
+        x, y = self.cache
+        y.reshape([x.shape[0], y.shape[1], 1, 1, y.shape[2]])
+        x.reshape([x.shape[0], x.shape[1], 1, 1, x.shape[2]])
+        x = super(Conv1d, self).backward_cpu()
+        x.reset()
+        y.reset()
+        return x
 
 class Conv2d(ConvNd):
     def __init__(self,
@@ -173,6 +187,22 @@ class Conv2d(ConvNd):
                  padding_mode: str = 'zeros'):
         super(Conv2d, self).__init__(2, in_channels, out_channels, kernel_size, stride, padding, dilation, False, 0,
                                      groups, bias, padding_mode)
+
+    def forward_cpu(self, x: tensor) -> tensor:
+        x.reshape([x.shape[0], x.shape[1], 1, x.shape[2], x.shape[3]])
+        y = super(Conv2d, self).forward_cpu(x)
+        x.reset()
+        y.reshape([x.shape[0], y.shape[1], y.shape[3], y.shape[4]])
+        return y
+
+    def backward_cpu(self):
+        x, y = self.cache
+        y.reshape([x.shape[0], y.shape[1], 1, y.shape[2], y.shape[3]])
+        x.reshape([x.shape[0], x.shape[1], 1, x.shape[2], x.shape[3]])
+        x = super(Conv2d, self).backward_cpu()
+        x.reset()
+        y.reset()
+        return x
 
 
 class Conv3d(ConvNd):
