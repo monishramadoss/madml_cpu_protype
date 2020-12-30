@@ -74,7 +74,7 @@ class CrossEntropyLoss(_WeightedLoss):
     __constants__ = ['ignore_index', 'reduction']
     ignore_index: int
 
-    def __init__(self, weight=None, size_average=None, ignore_index: int = -100,
+    def __init__(self, weight=None, size_average=None, ignore_index: int = None,
                  reduce=None, reduction: str = 'mean') -> None:
         super(CrossEntropyLoss, self).__init__(weight, size_average, reduce, reduction)
         self.ignore_index = ignore_index
@@ -82,23 +82,49 @@ class CrossEntropyLoss(_WeightedLoss):
         self.batchsize = 1
 
     def forward_cpu(self, logit: tensor, target: tensor) -> tensor:
-        self.batchsize = logit.shape[0]
+        assert(len(logit.shape) != 1)
 
-        prob = zeros_like(logit)
-        prob = softmax_util_cpu(logit, prob)
-        t = np.zeros(logit.shape)
-        tmp = target.host_data.astype(int)
+        N = logit.shape[0]
+        C = logit.shape[1]
+        x = logit.host_data
+        t = target.host_data
 
-        for i in range(self.batchsize):
-            t_idx = tmp[i]
-            t[i, t_idx] = 1
+        max_x = np.max(x, axis=1, keepdims=True)
+        exp_x = np.exp(x - max_x)
+        p = exp_x / np.sum(exp_x, axis=1, keepdims=True)
+        inp = np.log(p)
+       
+        gather_weight = None
+        if self.weight is not None:
+            gather_weight = np.take(self.weight, t, mode='clip')            
+            if self.ignore_index is not None:
+                gather_weight = np.where(t == self.ignore_index, 0, gather_weight).astype(dtype=np.float32)
+        elif self.ignore_index is not None:
+            gather_weight = np.where(t == self.ignore_index, 0, 1).astype(dtype=np.float32)
 
-        reg_loss = self.regularize()
-        self.loss.host_data = -np.sum(t * np.log(prob.host_data)) + reg_loss
+        if len(inp.shape) != 3:
+            inp = inp.reshape([N, C, -1])
+            t = t.reshape([N, -1])
+        D = inp.shape[2]
+        
+        neg_gather_element_input = np.zeros((N, D), dtype=np.float32)
+        for i in range(N):
+            for d in range(D):
+                if t[i][d] != self.ignore_index:
+                    idx = int(t[i][d])
+                    neg_gather_element_input[i][d] = -inp[i][idx][d]
+
+        loss = neg_gather_element_input
+        if self.reduction == 'mean':
+            loss = np.mean(loss)
+        elif self.reduction == 'sum':
+            loss = np.sum(loss)
+
+        self.loss.host_data = loss
 
         self.cache.append(logit)
         self.cache.append(target)
-        self.cache.append(prob)
+        self.cache.append(p)
         return self.loss
 
     def backward_cpu(self) -> tensor:

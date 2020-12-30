@@ -81,7 +81,16 @@ class TestModules(unittest.TestCase):
         dx = t1.gradient.host_data[..., 1:, 1:]
         self.assertTrue(True)
 
+    def test_crossentropy(self):
+        x = np.random.rand(3, 5).astype(np.float32)
+        labels = np.random.randint(0, high=5, size=(3, ))
 
+        t1 = madml.tensor(x)
+        target = madml.tensor(labels)
+        module = nn.CrossEntropyLoss()
+
+        loss = module.forward_cpu(t1, target)
+        print(loss.host_data)
 
 if __name__ == '__main__':
     unittest.main()
