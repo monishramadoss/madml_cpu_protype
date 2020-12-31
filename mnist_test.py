@@ -84,8 +84,8 @@ class mnist_model(nn.Module):
 def train_loop(model=mnist_model()):
     batchsize = 16
     x, y, x1, y1 = load()
-    x = x.reshape((-1, batchsize, 1, 1, 28, 28))
-    x1 = x1.reshape((-1, 1, 1, 1, 28, 28))
+    x = x.reshape((-1, batchsize, 1, 28, 28))
+    x1 = x1.reshape((-1, 1, 1, 28, 28))
     y = y.reshape((-1, batchsize, 1))
 
     t_x = madml.tensor(x)

@@ -131,10 +131,12 @@ class CrossEntropyLoss(_WeightedLoss):
         x, t, p = self.cache
         self.visited[self.loss.id] = True
         self.visited[t.id] = True
-        dx = p.host_data
+        t = t.host_data.reshape([x.shape[0], -1])
+        dx = p
         for i in range(self.batchsize):
-            t_idx = int(t.host_data[i][0])
-            dx[i][t_idx] -= 1
+            for d in range(t.shape[1]):
+                t_idx = int(t[i][d])
+                dx[i][t_idx] -= 1
 
         dx /= self.batchsize
         x.gradient.host_data = dx

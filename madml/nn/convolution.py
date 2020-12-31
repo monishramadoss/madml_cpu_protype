@@ -57,7 +57,7 @@ class ConvNd(Module):
     def __init__(self, dims, in_channels: int, out_channels: int, kernel_size: Union[int, List[int]],
                  stride: Union[int, List[int]], padding: Union[int, List[int]], dilation: Union[int, List[int]],
                  transposed: bool, output_padding: Union[int, List[int]],
-                 groups: int, bias: bool, padding_mode: str) -> None:
+                 groups: int, bias: bool, padding_mode: str, weight_init='xavier_uniform') -> None:
         super(ConvNd, self).__init__()
 
         if groups != 1:
@@ -93,7 +93,10 @@ class ConvNd(Module):
             weight_shape = [in_channels, out_channels // groups, *self.kernel_size]
         else:
             weight_shape = [out_channels, in_channels // groups, *self.kernel_size]
-        self.weight = Parameter(ones, weight_shape)
+        if weight_init == 'xavier_uniform':
+            self.weight = Parameter(xavier_uniform(), weight_shape)
+        else:
+            self.weight = Parameter(ones, weight_shape)
         self.kernel = None
 
     def forward_cpu(self, x: tensor) -> tensor:
@@ -154,15 +157,17 @@ class Conv1d(ConvNd):
                  dilation: Union[int, List[int]] = 1,
                  groups: Union[int, List[int]] = 1,
                  bias: bool = False,
-                 padding_mode: str = 'zeros'):
+                 padding_mode: str = 'zeros',
+                 weight_init: str = 'xavier_uniform'):
         super(Conv1d, self).__init__(1, in_channels, out_channels, kernel_size, stride, padding, dilation, False, 0,
-                                     groups, bias, padding_mode)
+                                     groups, bias, padding_mode, weight_init)
 
     def forward_cpu(self, x: tensor) -> tensor:
         x.reshape([x.shape[0], x.shape[1], 1, 1, x.shape[2]])
         y = super(Conv1d, self).forward_cpu(x)
         x.reset()
         y.reshape([x.shape[0], y.shape[1], y.shape[4]])
+        y.init_shape = y.shape
         return y
 
     def backward_cpu(self):
@@ -184,20 +189,22 @@ class Conv2d(ConvNd):
                  dilation: Union[int, List[int]] = 1,
                  groups: Union[int, List[int]] = 1,
                  bias: bool = False,
-                 padding_mode: str = 'zeros'):
+                 padding_mode: str = 'zeros',
+                 weight_init: str = 'xavier_uniform'):
         super(Conv2d, self).__init__(2, in_channels, out_channels, kernel_size, stride, padding, dilation, False, 0,
-                                     groups, bias, padding_mode)
+                                     groups, bias, padding_mode, weight_init)
 
     def forward_cpu(self, x: tensor) -> tensor:
         x.reshape([x.shape[0], x.shape[1], 1, x.shape[2], x.shape[3]])
         y = super(Conv2d, self).forward_cpu(x)
         x.reset()
-        y.reshape([x.shape[0], y.shape[1], y.shape[3], y.shape[4]])
+        y.reshape([y.shape[0], y.shape[1], y.shape[3], y.shape[4]])
+        y.init_shape = y.shape
         return y
 
     def backward_cpu(self):
         x, y = self.cache
-        y.reshape([x.shape[0], y.shape[1], 1, y.shape[2], y.shape[3]])
+        y.reshape([y.shape[0], y.shape[1], 1, y.shape[2], y.shape[3]])
         x.reshape([x.shape[0], x.shape[1], 1, x.shape[2], x.shape[3]])
         x = super(Conv2d, self).backward_cpu()
         x.reset()

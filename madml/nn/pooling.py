@@ -116,7 +116,7 @@ class MaxPool1d(_MaxPoolNd):
         x.reshape([x.shape[0], x.shape[1], 1, 1, x.shape[2]])
         y = super(MaxPool1d, self).forward_cpu(x)
         x.reset()
-        y.reshape([x.shape[0], y.shape[1], y.shape[4]])
+        y.reshape([x.shape[0], y.shape[1], y.shape[-1]])
         return y
 
     def backward_cpu(self):
@@ -145,11 +145,12 @@ class MaxPool2d(_MaxPoolNd):
         y = super(MaxPool2d, self).forward_cpu(x)
         x.reset()
         y.reshape([x.shape[0], y.shape[1], y.shape[3], y.shape[4]])
+        y.init_shape = y.shape
         return y
 
     def backward_cpu(self):
         x, y, _ = self.cache
-        y.reshape([x.shape[0], y.shape[1], 1, y.shape[2], y.shape[3]])
+        y.reshape([y.shape[0], y.shape[1], 1, y.shape[2], y.shape[3]])
         x.reshape([x.shape[0], x.shape[1], 1, x.shape[2], x.shape[3]])
         x = super(MaxPool2d, self).backward_cpu()
         x.reset()

@@ -33,7 +33,7 @@ class TestModules(unittest.TestCase):
                                     [72., 111., 117., 123., 84.]]]).astype(np.float32).reshape([1, 1, 5, 5])
 
         t1 = madml.tensor(x)
-        module = nn.Conv2d(1, 1, kernel_shape, stride, padding, dilation)
+        module = nn.Conv2d(1, 1, kernel_shape, stride, padding, dilation, weight_init='ones')
         t2 = module.forward_cpu(t1)
         y = t2.host_data
         self.assertTrue((y == y_with_padding).all())
@@ -42,7 +42,7 @@ class TestModules(unittest.TestCase):
         y_without_padding = np.array([[[[54., 63., 72.],
                                         [99., 108., 117.],
                                         [144., 153., 162.]]]]).astype(np.float32).reshape([1, 1,  3, 3])
-        module2 = nn.Conv2d(1, 1, kernel_shape, stride, padding, dilation)
+        module2 = nn.Conv2d(1, 1, kernel_shape, stride, padding, dilation, weight_init='ones')
         t3 = module2.forward_cpu(t1)
         y2 = t3.host_data
         self.assertTrue((y2 == y_without_padding).all())
@@ -90,7 +90,9 @@ class TestModules(unittest.TestCase):
         module = nn.CrossEntropyLoss()
 
         loss = module.forward_cpu(t1, target)
-        print(loss.host_data)
+
+        dx = module.backward_cpu()
+        print(loss.host_data, dx.gradient.host_data)
 
 if __name__ == '__main__':
     unittest.main()
