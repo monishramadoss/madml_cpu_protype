@@ -90,7 +90,7 @@ def train_loop(model=mnist_model()):
 
     t_x = madml.tensor(x)
     t_y = madml.tensor(y)
-    loss_fn = nn.CrossEntropyLoss()
+    loss_fn = nn.MSELoss()
     optim = optimzer.SGD(model.parameters())
     for i in range(t_x.shape[0]):
         optim.zero_grad()
@@ -99,9 +99,9 @@ def train_loop(model=mnist_model()):
         loss.backward()
         optim.step()
         print('===', i, logit.shape, loss.host_data)
-        if loss.host_data.all() < 4.0:
-            print(logit.host_data[0])
-            print(t_y[i].host_data[0])
+        if (loss.host_data < .01).all() or (np.abs(loss.host_data) == np.inf) or (loss.host_data == np.nan):
+            print('logit', logit.host_data[0])
+            print('target', t_y[i].host_data[0])
             break
 
 train_loop()

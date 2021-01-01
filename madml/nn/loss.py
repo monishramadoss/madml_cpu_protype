@@ -52,6 +52,7 @@ class _Loss(Module):
             self.reduction = None  # _Reduction.legacy_get_string(size_average, reduce)
         else:
             self.reduction = reduction
+        self.loss = tensor([0], [1])
 
     def regularize(self) -> float:
         reg_loss = 0.0
@@ -78,11 +79,11 @@ class CrossEntropyLoss(_WeightedLoss):
                  reduce=None, reduction: str = 'mean') -> None:
         super(CrossEntropyLoss, self).__init__(weight, size_average, reduce, reduction)
         self.ignore_index = ignore_index
-        self.loss = tensor([0], [1])
+
         self.batchsize = 1
 
     def forward_cpu(self, logit: tensor, target: tensor) -> tensor:
-        assert(len(logit.shape) != 1)
+        assert (len(logit.shape) != 1)
 
         N = logit.shape[0]
         C = logit.shape[1]
@@ -93,10 +94,10 @@ class CrossEntropyLoss(_WeightedLoss):
         exp_x = np.exp(x - max_x)
         p = exp_x / np.sum(exp_x, axis=1, keepdims=True)
         inp = np.log(p)
-       
+
         gather_weight = None
         if self.weight is not None:
-            gather_weight = np.take(self.weight, t, mode='clip')            
+            gather_weight = np.take(self.weight, t, mode='clip')
             if self.ignore_index is not None:
                 gather_weight = np.where(t == self.ignore_index, 0, gather_weight).astype(dtype=np.float32)
         elif self.ignore_index is not None:
@@ -106,7 +107,7 @@ class CrossEntropyLoss(_WeightedLoss):
             inp = inp.reshape([N, C, -1])
             t = t.reshape([N, -1])
         D = inp.shape[2]
-        
+
         neg_gather_element_input = np.zeros((N, D), dtype=np.float32)
         for i in range(N):
             for d in range(D):
@@ -120,7 +121,7 @@ class CrossEntropyLoss(_WeightedLoss):
         elif self.reduction == 'sum':
             loss = np.sum(loss)
 
-        self.loss.host_data = loss
+        self.loss.host_data = loss + self.regularize()
 
         self.cache.append(logit)
         self.cache.append(target)
@@ -140,4 +141,35 @@ class CrossEntropyLoss(_WeightedLoss):
 
         dx /= self.batchsize
         x.gradient.host_data = dx
+        return x
+
+
+class MSELoss(_Loss):
+    __constants__ = ['reduction']
+
+    def __init__(self, size_average=None, reduce=None, reduction: str='mean') -> tensor:
+        super(MSELoss, self).__init__(size_average, reduce, reduction)
+
+    def forward_cpu(self, logit: tensor, target: tensor) -> tensor:
+        m = logit.shape[0]
+        data_loss = (np.square(logit.host_data - target.host_data)).mean(axis=0)
+        data_loss /= m
+
+        if self.reduction == 'mean':
+            loss = np.mean(data_loss)
+        elif self.reduction == 'sum':
+            loss = np.sum(data_loss)
+
+        self.loss.host_data = loss + self.regularize()
+
+        self.cache.append(logit)
+        self.cache.append(target)
+        self.cache.append(m)
+        return self.loss
+
+    def backward_cpu(self) -> tensor:
+        x, t, m = self.cache
+        grad_y = 2 * (x.host_data - t.host_data)
+        grad_y /= m
+        x.gradient.host_data = grad_y
         return x

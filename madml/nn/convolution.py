@@ -5,11 +5,11 @@ from __future__ import unicode_literals
 
 from typing import Union, List, Optional
 
-from madml import tensor, xavier_uniform, zeros, ones
+from madml import tensor, kaiming_uniform, zeros, ones, xavier_uniform
 from .module import Module, Parameter
 from .transform import transpose, vol2col
 import numpy as np
-
+import math
 from numba import prange
 
 
@@ -95,6 +95,8 @@ class ConvNd(Module):
             weight_shape = [out_channels, in_channels // groups, *self.kernel_size]
         if weight_init == 'xavier_uniform':
             self.weight = Parameter(xavier_uniform(), weight_shape)
+        elif weight_init == 'kaiming_uniform':
+            self.weight = Parameter(kaiming_uniform(a=math.sqrt(5), nonlinearity='conv3d'), weight_shape)
         else:
             self.weight = Parameter(ones, weight_shape)
         self.kernel = None
@@ -144,6 +146,7 @@ class ConvNd(Module):
         w_reshaped = self.weight.param.host_data.reshape([self.out_channels, -1])
         dc.host_data = w_reshaped.T @ dy_reshaped
         _ = self.kernel.backward_cpu()
+        y.zero_grad()
         return x
 
 
@@ -158,7 +161,7 @@ class Conv1d(ConvNd):
                  groups: Union[int, List[int]] = 1,
                  bias: bool = False,
                  padding_mode: str = 'zeros',
-                 weight_init: str = 'xavier_uniform'):
+                 weight_init: str = 'kaiming_uniform'):
         super(Conv1d, self).__init__(1, in_channels, out_channels, kernel_size, stride, padding, dilation, False, 0,
                                      groups, bias, padding_mode, weight_init)
 

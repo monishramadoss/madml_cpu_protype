@@ -3,9 +3,10 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from madml import tensor, normal, zeros
+from madml import tensor, normal, zeros, kaiming_uniform
 from .module import Module, Parameter
 import numpy as np
+import math
 
 
 class Linear(Module):
@@ -17,7 +18,7 @@ class Linear(Module):
         super(Linear, self).__init__()
         self.in_features = in_features
         self.out_features = out_features
-        self.weight = Parameter(normal(), [in_features, out_features])
+        self.weight = Parameter(kaiming_uniform(a=math.sqrt(5), nonlinearity='linear'), [in_features, out_features])
         self.bias = Parameter(zeros, [out_features]) if bias else None
 
     def forward_cpu(self, x: tensor) -> tensor:
@@ -40,4 +41,5 @@ class Linear(Module):
 
         self.weight.param.gradient.host_data = x.host_data.T @ y.gradient.host_data
         x.gradient.host_data = y.gradient.host_data @ self.weight.param.host_data.T
+        y.zero_grad()
         return x

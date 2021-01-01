@@ -98,6 +98,7 @@ class _MaxPoolNd(Module):
         self.col.gradient.host_data = d_col
         self.col.reset()
         _ = self.kernel.backward_cpu()
+        y.zero_grad()
         return x
 
 

@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import List
+from typing import Dict
 
 from madml.nn import Parameter
 
@@ -7,7 +7,7 @@ from madml.nn import Parameter
 class Optimizer(object):
     _use_velocity: bool
 
-    def __init__(self, params: dict, defaults: dict) -> None:
+    def __init__(self, params: Dict[int, Parameter], defaults: dict) -> None:
         self.defaults = defaults
         self.state = defaultdict(dict)
         self.params = params
@@ -22,7 +22,7 @@ class Optimizer(object):
 
 
 class SGD(Optimizer):
-    def __init__(self, params: List[Parameter], lr: float = 1e-2, momentum: int = 0.9, dampening: int = 0,
+    def __init__(self, params: Dict[int, Parameter], lr: float = 1e-2, momentum: int = 0.9, dampening: int = 0,
                  weight_decay: float = 0, nesterov: bool = False) -> None:
         if lr < 0.0:
             raise ValueError("Invalid learning rate: {}".format(lr))
@@ -39,6 +39,9 @@ class SGD(Optimizer):
     def step(self, closure=None) -> None:
         for x, p in self.params.items():
             for i in range(p.velocity.size):
-                p.velocity.host_data.ravel()[i] = self.defaults['momentum'] * p.velocity.host_data.ravel()[i] + self.defaults['lr'] * \
-                                          p.param.grad_data[i]
+                p.velocity.host_data.ravel()[i] = self.defaults['momentum'] * p.velocity.host_data.ravel()[i]\
+
+                
+                                                  + self.defaults['lr'] * p.param.gradient.host_data.ravel()[i]
                 p.param.host_data.ravel()[i] -= p.velocity.host_data.ravel()[i]
+        return

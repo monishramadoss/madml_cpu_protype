@@ -148,3 +148,6 @@ class tensor(object):
     def transpose(self, axis: List[int]) -> None:
         self._host_memory = self._host_memory.transpose(axis)
         self.shape = list(self._host_memory.shape)
+
+    def zero_grad(self):
+        self.gradient.host_data = np.zeros_like(self.gradient.host_data)
