@@ -84,8 +84,8 @@ class CrossEntropyLoss(_WeightedLoss):
 
     def forward_cpu(self, logit: tensor, target: tensor) -> tensor:
         assert (len(logit.shape) != 1)
-
-        N = logit.shape[0]
+        self.batchsize = logit.shape[0]
+        N = self.batchsize
         C = logit.shape[1]
         x = logit.host_data
         t = target.host_data
@@ -125,7 +125,7 @@ class CrossEntropyLoss(_WeightedLoss):
 
         self.cache.append(logit)
         self.cache.append(target)
-        self.cache.append(p)
+        self.cache.append(exp_x)
         return self.loss
 
     def backward_cpu(self) -> tensor:

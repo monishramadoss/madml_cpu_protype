@@ -57,8 +57,8 @@ class mnist_model(nn.Module):
         super(mnist_model, self).__init__()
         self.conv1 = nn.Conv2d(1, 32, 3, padding=1)
         self.pool = nn.MaxPool2d(2, 2)
-        self.conv2 = nn.Conv2d(32, 10, 3)
-        self.fc1 = nn.Linear(10 * 12 * 12, 120)
+        self.conv2 = nn.Conv2d(32, 48, 3)
+        self.fc1 = nn.Linear(48 * 12 * 12, 120)
         self.fc2 = nn.Linear(120, 84)
         self.fc3 = nn.Linear(84, 10)
         self.relu1 = nn.ReLU()
@@ -90,7 +90,7 @@ def train_loop(model=mnist_model()):
 
     t_x = madml.tensor(x)
     t_y = madml.tensor(y)
-    loss_fn = nn.MSELoss()
+    loss_fn = nn.CrossEntropyLoss()
     optim = optimzer.SGD(model.parameters())
     for i in range(t_x.shape[0]):
         optim.zero_grad()
