@@ -44,6 +44,7 @@ class Module(object):
         self.registered = False
         self.visited = {}
         self.id = id(self)
+        self.y = None
         module_cache[self.id] = self
 
     def forward(self, *args, **kwargs):

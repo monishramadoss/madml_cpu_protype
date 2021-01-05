@@ -1,7 +1,9 @@
 from collections import defaultdict
-from typing import Dict
-
+from typing import Dict, List
+import numpy as np
 from madml.nn import Parameter
+from .init import zeros_like
+
 
 
 class Optimizer(object):
@@ -14,15 +16,15 @@ class Optimizer(object):
         self._use_velocity = False
 
     def zero_grad(self) -> None:
-        for _, p in self.params.items():
-            p.zero_grad()
+        for _, t in self.params.items():
+            t.zero_grad()
 
     def step(self):
         raise NotImplementedError
 
 
 class SGD(Optimizer):
-    def __init__(self, params: Dict[int, Parameter], lr: float = 1e-3, momentum: float = 0.0, dampening: int = 0,
+    def __init__(self, params: Dict[int, Parameter], lr: float = 1e-3, momentum: float = 0.9, dampening: int = 0,
                  weight_decay: float = 0, nesterov: bool = False) -> None:
         if lr < 0.0:
             raise ValueError("Invalid learning rate: {}".format(lr))
@@ -38,10 +40,42 @@ class SGD(Optimizer):
 
     def step(self, closure=None) -> None:
         for x, p in self.params.items():
-            print(p.param.host_data.max(), end=' => ')
             for i in range(p.velocity.size):
                 p.velocity.host_data.ravel()[i] = self.defaults['momentum'] * p.velocity.host_data.ravel()[i] \
-                          + self.defaults['lr'] * p.param.gradient.host_data.ravel()[i]
+                                                  + self.defaults['lr'] * p.param.gradient.host_data.ravel()[i]
                 p.param.host_data.ravel()[i] -= p.velocity.host_data.ravel()[i]
-            print(p.param.host_data.max(), p.velocity.host_data.max())
-        return
+
+
+def exp_running_avg(running, new, gamma=.9):
+    return gamma * running + (1. - gamma) * new
+
+class Adam(Optimizer):
+    def __init__(self, params: Dict[int, Parameter], lr: float = 1e-3, betas: List[float] = (0.9, 0.999),
+                 eps: float = 1e-8, weight_decay: float = 0.0, amsgrad: bool = False) -> None:
+        if not 0.0 <= lr:
+            raise ValueError("Invalid learning rate: {}".format(lr))
+        if not 0.0 <= eps:
+            raise ValueError("Invalid epsilon value: {}".format(eps))
+        if not 0.0 <= betas[0] < 1.0:
+            raise ValueError("Invalid beta parameter at index 0: {}".format(betas[0]))
+        if not 0.0 <= betas[1] < 1.0:
+            raise ValueError("Invalid beta parameter at index 1: {}".format(betas[1]))
+        if not 0.0 <= weight_decay:
+            raise ValueError("Invalid weight_decay value: {}".format(weight_decay))
+
+        defaults = dict(lr=lr, betas=betas, eps=eps, weight_decay=weight_decay, amsgrad=amsgrad)
+        self.M = {k: zeros_like(v.param) for k, v in params.items()}
+        self.counter = 1
+        super(Adam, self).__init__(params, defaults)
+
+    def step(self, closure=None) -> None:
+        for k, p in self.params.items():
+            p.param.reset()
+            m = self.M[k].host_data
+            r = p.velocity.host_data
+            self.M[k].host_data = exp_running_avg(m, p.param.host_data, self.defaults['betas'][0])
+            p.velocity.host_data = exp_running_avg(r, p.param.host_data ** 2, self.defaults['betas'][1])
+            m_k_hat = self.M[k].host_data / (1. - self.defaults['betas'][0] ** self.counter)
+            r_k_hat = p.velocity.host_data / (1. - self.defaults['betas'][1] ** self.counter)
+            p.param.host_data -= self.defaults['lr'] * m_k_hat / np.sqrt(r_k_hat) + self.defaults['eps']
+        self.counter += 1

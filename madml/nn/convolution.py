@@ -57,7 +57,7 @@ class ConvNd(Module):
     def __init__(self, dims, in_channels: int, out_channels: int, kernel_size: Union[int, List[int]],
                  stride: Union[int, List[int]], padding: Union[int, List[int]], dilation: Union[int, List[int]],
                  transposed: bool, output_padding: Union[int, List[int]],
-                 groups: int, bias: bool, padding_mode: str, weight_init='xavier_uniform') -> None:
+                 groups: int, bias: bool, padding_mode: str, weight_init='kaiming_uniform') -> None:
         super(ConvNd, self).__init__()
 
         if groups != 1:
@@ -146,13 +146,14 @@ class ConvNd(Module):
         w_reshaped = self.weight.param.host_data.reshape([self.out_channels, -1])
         self.col.gradient.host_data = w_reshaped.T @ dy_reshaped
         _ = self.kernel.backward_cpu()
+        y.zero_grad()
+        return x
 
+    def print_weights(self) -> None:
+        x, y = self.cache
         print(' conv input:', x.host_data.max(), 'g', x.gradient.host_data.max(),
               ' weight:', self.weight.param.host_data.max(), 'g', self.weight.param.gradient.host_data.max(),
               ' output:', y.host_data.max(), 'g', y.gradient.host_data.max())
-        y.zero_grad()
-        self.col.zero_grad()
-        return x
 
 
 class Conv1d(ConvNd):

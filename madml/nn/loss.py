@@ -127,7 +127,7 @@ class CrossEntropyLoss(_WeightedLoss):
         self.cache.append(logit)
         self.cache.append(target)
         self.cache.append(p)
-        self.losses.append(self.loss.host_data.max())
+        self.losses.append(loss)
         return self.loss
 
     def backward_cpu(self) -> tensor:

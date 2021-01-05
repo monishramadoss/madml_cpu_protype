@@ -4,7 +4,6 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import math
-
 import numpy as np
 
 from madml import tensor, zeros, kaiming_uniform
@@ -44,8 +43,11 @@ class Linear(Module):
         self.weight.param.gradient.host_data = x.host_data.T @ y.gradient.host_data
         x.gradient.host_data = y.gradient.host_data @ self.weight.param.host_data.T
 
+        y.zero_grad()
+        return x
+
+    def print(self) -> None:
+        x, y = self.cache
         print(' linear input:', x.host_data.max(), 'g', x.gradient.host_data.max(),
               ' weight:', self.weight.param.host_data.max(), 'g',self.weight.param.gradient.host_data.max(),
               ' output:', y.host_data.max(), 'g', y.gradient.host_data.max())
-
-        return x

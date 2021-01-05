@@ -84,14 +84,17 @@ class cnn_mnist_model(nn.Module):
 class dnn_mnist_model(nn.Module):
     def __init__(self):
         super(dnn_mnist_model, self).__init__()
-        self.fc1 = nn.Linear(28 * 28, 512)
-        self.fc2 = nn.Linear(512, 512)
-        self.fc3 = nn.Linear(512, 84)
-        self.fc4 = nn.Linear(84, 10)
+        self.fc1 = nn.Linear(28 * 28, 1024)
+        self.fc2 = nn.Linear(1024, 1024)
+        self.fc3 = nn.Linear(1024, 1024)
+        self.fc4 = nn.Linear(1024, 512)
+        self.fc5 = nn.Linear(512, 128)
+        self.fc6 = nn.Linear(128, 10)
         self.relu1 = nn.ReLU()
         self.relu2 = nn.ReLU()
         self.relu3 = nn.ReLU()
         self.relu4 = nn.ReLU()
+        self.relu5 = nn.ReLU()
 
     def forward(self, x):
         x = self.fc1(x)
@@ -99,12 +102,17 @@ class dnn_mnist_model(nn.Module):
         x = self.fc2(x)
         x = self.relu2(x)
         x = self.fc3(x)
-        x = self.relu4(x)
+        x = self.relu3(x)
         x = self.fc4(x)
+        x = self.relu4(x)
+        x = self.fc5(x)
+        x = self.relu5(x)
+        x = self.fc6(x)
         return x
 
 
-def cnn_train_loop(model=cnn_mnist_model()):
+def cnn_train_loop(model_class=cnn_mnist_model):
+    model = model_class()
     batchsize = 16
     x, y, x1, y1 = load()
     x = x.reshape((-1, batchsize, 1, 28, 28))
@@ -114,26 +122,28 @@ def cnn_train_loop(model=cnn_mnist_model()):
     t_x = madml.tensor(x)
     t_y = madml.tensor(y)
     loss_fn = nn.CrossEntropyLoss()
-    optim = optimzer.SGD(model.parameters())
+    optim = optimzer.Adam(model.parameters(), lr=1e-2)
     for i in range(t_x.shape[0]):
         optim.zero_grad()
         logit = model(t_x[i])
         loss = loss_fn(logit, t_y[i])
         loss.backward()
         optim.step()
-        exit_statement = (loss.host_data < .01).all() or \
+        exit_statement = (loss.host_data < .005).all() or \
                          (np.abs(loss.host_data) == np.inf) or \
                          (loss.host_data == np.nan)
 
         if exit_statement and (i % 3 == 0 and i != 0):
-            print('logit', logit.host_data[0])
-            print('target', t_y[i].host_data[0])
+            for n in range(batchsize):
+                print('logit', logit.host_data[n], '->', np.argmax(logit.host_data[n]), end=': ')
+                print('target', t_y[i].host_data[n])
             break
         else:
             print('===', i, logit.shape, loss.host_data)
 
 
-def dnn_train_loop(model=dnn_mnist_model()):
+def dnn_train_loop(model_class=dnn_mnist_model):
+    model = model_class()
     batchsize = 16
     x, y, x1, y1 = load()
     x = x.reshape((-1, batchsize, 28 * 28))
@@ -142,20 +152,21 @@ def dnn_train_loop(model=dnn_mnist_model()):
     t_x = madml.tensor(x)
     t_y = madml.tensor(y)
     loss_fn = nn.CrossEntropyLoss()
-    optim = optimzer.SGD(model.parameters())
+    optim = optimzer.Adam(model.parameters())
     for i in range(t_x.shape[0]):
         optim.zero_grad()
         logit = model(t_x[i])
         loss = loss_fn(logit, t_y[i])
         loss.backward()
         optim.step()
-        exit_statement = (loss.host_data < .01).all() or \
+        exit_statement = (loss.host_data < .03).all() or \
                          (np.abs(loss.host_data) == np.inf) or \
                          (loss.host_data == np.nan)
 
         if exit_statement and (i % 3 == 0 and i != 0):
-            print('logit', logit.host_data[0])
-            print('target', t_y[i].host_data[0])
+            for n in range(batchsize):
+                print('logit', logit.host_data[n], '->', np.argmax(logit.host_data[n]), end=': ')
+                print('target', t_y[i].host_data[n])
             break
         else:
             print('===', i, logit.shape, loss.host_data)

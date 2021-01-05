@@ -11,7 +11,6 @@ import numpy as np
 
 # from .nn.module import module_cache, execution_order
 
-
 def _convert_to_float(size: int, arr: List[bytes]) -> List[float]:
     ret_data = []
     ret_data.extend([bytearray(arr[i:i + 4]) for i in range(0, size, 4)])
@@ -152,4 +151,5 @@ class tensor(object):
         self.shape = list(self._host_memory.shape)
 
     def zero_grad(self):
-        self.gradient.host_data = np.zeros_like(self.gradient.host_data)
+        if self._grad is not None:
+            self.gradient.host_data = np.zeros_like(self.gradient.host_data)
