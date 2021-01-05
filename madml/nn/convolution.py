@@ -146,6 +146,10 @@ class ConvNd(Module):
         w_reshaped = self.weight.param.host_data.reshape([self.out_channels, -1])
         dc.host_data = w_reshaped.T @ dy_reshaped
         _ = self.kernel.backward_cpu()
+
+        print(' conv input:', x.host_data.max(), x.gradient.host_data.max(),
+              ' weight:', self.weight.param.host_data.max(), self.weight.param.gradient.host_data.max(),
+              ' output:', y.host_data.max(), y.gradient.host_data.max())
         y.zero_grad()
         return x
 

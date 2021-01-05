@@ -99,7 +99,11 @@ def train_loop(model=mnist_model()):
         loss.backward()
         optim.step()
         print('===', i, logit.shape, loss.host_data)
-        if (loss.host_data < .01).all() or (np.abs(loss.host_data) == np.inf) or (loss.host_data == np.nan):
+        if (loss.host_data < .01).all() \
+                or (np.abs(loss.host_data) == np.inf) \
+                or (loss.host_data == np.nan) \
+                or (i % 3 == 0 and i != 0):
+
             print('logit', logit.host_data[0])
             print('target', t_y[i].host_data[0])
             break

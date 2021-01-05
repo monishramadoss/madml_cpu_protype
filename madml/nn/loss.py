@@ -93,7 +93,7 @@ class CrossEntropyLoss(_WeightedLoss):
         max_x = np.max(x, axis=1, keepdims=True)
         exp_x = np.exp(x - max_x)
         p = exp_x / np.sum(exp_x, axis=1, keepdims=True)
-        inp = np.log(p)
+        inp = p
 
         gather_weight = None
         if self.weight is not None:
@@ -125,7 +125,7 @@ class CrossEntropyLoss(_WeightedLoss):
 
         self.cache.append(logit)
         self.cache.append(target)
-        self.cache.append(exp_x)
+        self.cache.append(p)
         return self.loss
 
     def backward_cpu(self) -> tensor:
