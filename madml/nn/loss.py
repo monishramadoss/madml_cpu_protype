@@ -121,8 +121,9 @@ class CrossEntropyLoss(_WeightedLoss):
             loss = np.mean(loss)
         elif self.reduction == 'sum':
             loss = np.sum(loss)
-
-        self.loss.host_data = loss + self.regularize()
+        reg = self.regularize()
+        self.loss.host_data = loss + reg
+        print('l:', loss.max(), reg)
 
         self.cache.append(logit)
         self.cache.append(target)
@@ -143,6 +144,7 @@ class CrossEntropyLoss(_WeightedLoss):
 
         dx /= self.batchsize
         x.gradient.host_data = dx
+        #print(dx)
         return x
 
 
