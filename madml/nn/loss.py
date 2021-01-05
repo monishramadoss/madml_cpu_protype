@@ -3,12 +3,12 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import math
-from typing import Optional, List
+from typing import List
 
-from madml import tensor, zeros_like, zeros
-from .module import Module
 import numpy as np
+
+from madml import tensor
+from .module import Module
 
 
 def _size(shape: List[int]) -> int:
@@ -147,7 +147,7 @@ class CrossEntropyLoss(_WeightedLoss):
 class MSELoss(_Loss):
     __constants__ = ['reduction']
 
-    def __init__(self, size_average=None, reduce=None, reduction: str='mean') -> tensor:
+    def __init__(self, size_average=None, reduce=None, reduction: str = 'mean') -> tensor:
         super(MSELoss, self).__init__(size_average, reduce, reduction)
 
     def forward_cpu(self, logit: tensor, target: tensor) -> tensor:

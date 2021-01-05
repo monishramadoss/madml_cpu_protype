@@ -1,5 +1,5 @@
-import numpy as np
 import hipsternet.constant as c
+import numpy as np
 
 
 def l2_reg(W, lam=1e-3):

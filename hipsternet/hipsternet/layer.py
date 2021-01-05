@@ -1,7 +1,6 @@
-import numpy as np
-import hipsternet.utils as util
 import hipsternet.constant as c
-import hipsternet.regularization as reg
+import hipsternet.utils as util
+import numpy as np
 from hipsternet.im2col import *
 
 
@@ -63,7 +62,7 @@ def tanh_forward(X):
 
 
 def tanh_backward(dout, cache):
-    dX = (1 - cache**2) * dout
+    dX = (1 - cache ** 2) * dout
     return dX
 
 
@@ -110,7 +109,7 @@ def bn_backward(dout, cache):
     std_inv = 1. / np.sqrt(var + c.eps)
 
     dX_norm = dout * gamma
-    dvar = np.sum(dX_norm * X_mu, axis=0) * -.5 * std_inv**3
+    dvar = np.sum(dX_norm * X_mu, axis=0) * -.5 * std_inv ** 3
     dmu = np.sum(dX_norm * -std_inv, axis=0) + dvar * np.mean(-2. * X_mu, axis=0)
 
     dX = (dX_norm * std_inv) + (dvar * 2 * X_mu / N) + (dmu / N)

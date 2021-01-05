@@ -5,10 +5,11 @@ from __future__ import unicode_literals
 
 from typing import Union, List, Optional
 
+import numpy as np
+
 from madml import tensor, zeros
 from .module import Module
 from .transform import vol2col
-import numpy as np
 
 
 def _dim_fix(arr, arg_arr, pi):

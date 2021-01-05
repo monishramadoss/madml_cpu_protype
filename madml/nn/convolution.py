@@ -3,14 +3,14 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import math
 from typing import Union, List, Optional
+
+import numpy as np
 
 from madml import tensor, kaiming_uniform, zeros, ones, xavier_uniform
 from .module import Module, Parameter
-from .transform import transpose, vol2col
-import numpy as np
-import math
-from numba import prange
+from .transform import vol2col
 
 
 def _dim_fix(arr, arg_arr, pi):
@@ -181,6 +181,7 @@ class Conv1d(ConvNd):
         x.reset()
         y.reset()
         return x
+
 
 class Conv2d(ConvNd):
     def __init__(self,

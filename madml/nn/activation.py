@@ -3,10 +3,11 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import numpy as np
+
 from madml import tensor, zeros_like
 from .module import Module
-import numba as nb
-import numpy as np
+
 
 class ReLU(Module):
     __constants__ = ['inplace']

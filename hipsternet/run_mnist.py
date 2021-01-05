@@ -1,9 +1,8 @@
-import numpy as np
+import sys
+
 import hipsternet.input_data as input_data
 import hipsternet.neuralnet as nn
 from hipsternet.solver import *
-import sys
-
 
 n_iter = 1000
 alpha = 1e-3
@@ -70,6 +69,8 @@ if __name__ == '__main__':
         if net_type == 'ff':
             net = nn.FeedForwardNet(D, C, H=128, lam=reg, p_dropout=p_dropout, loss=loss, nonlin=nonlin)
         elif net_type == 'cnn':
+            net = nn.ConvNet(10, C, H=128)
+        else:
             net = nn.ConvNet(10, C, H=128)
 
         net = solver_fun(

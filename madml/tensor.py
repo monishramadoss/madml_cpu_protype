@@ -5,7 +5,9 @@ from __future__ import unicode_literals
 
 import struct
 from typing import List, Union
+
 import numpy as np
+
 
 # from .nn.module import module_cache, execution_order
 
@@ -27,7 +29,7 @@ class tensor(object):
     id: int
 
     def __init__(self, data: Union[List[Union[float, int, bytes, bool]], np.ndarray], shape: List[int] = [],
-                 requires_grad: bool=True) -> None:
+                 requires_grad: bool = True) -> None:
         if isinstance(data, np.ndarray):
             self._host_memory = data.astype(np.float32)
             self.shape = list(data.shape)
@@ -86,7 +88,7 @@ class tensor(object):
 
     def reshape(self, shape: List[int]) -> None:
         self._host_memory = self._host_memory.reshape(shape)
-        assert(self._host_memory.size == self.size)
+        assert (self._host_memory.size == self.size)
         self.shape = list(self._host_memory.shape)
         if self._grad is not None:
             self._grad.reshape(self.shape)
@@ -97,8 +99,8 @@ class tensor(object):
 
     @gradient.setter
     def gradient(self, value) -> None:
-        assert(type(value) == type(self))
-        assert(self._grad.size == value.size)
+        assert (type(value) == type(self))
+        assert (self._grad.size == value.size)
         self._grad = value
 
     @property
@@ -112,7 +114,7 @@ class tensor(object):
 
     @host_data.setter
     def host_data(self, value: np.ndarray) -> None:
-        assert(value.size == self._host_memory.size)
+        assert (value.size == self._host_memory.size)
         self.shape = list(value.shape)
         self._host_memory = value
 

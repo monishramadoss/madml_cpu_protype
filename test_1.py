@@ -1,7 +1,9 @@
 import unittest
+
+import numpy as np
+
 import madml
 import madml.nn as nn
-import numpy as np
 
 
 class TestModules(unittest.TestCase):
@@ -22,10 +24,10 @@ class TestModules(unittest.TestCase):
         dilation = [1, 1]
 
         x = np.array([[[[0., 1., 2., 3., 4.],
-                         [5., 6., 7., 8., 9.],
-                         [10., 11., 12., 13., 14.],
-                         [15., 16., 17., 18., 19.],
-                         [20., 21., 22., 23., 24.]]]]).astype(np.float32)
+                        [5., 6., 7., 8., 9.],
+                        [10., 11., 12., 13., 14.],
+                        [15., 16., 17., 18., 19.],
+                        [20., 21., 22., 23., 24.]]]]).astype(np.float32)
         y_with_padding = np.array([[[12., 21., 27., 33., 24.],
                                     [33., 54., 63., 72., 51.],
                                     [63., 99., 108., 117., 81.],
@@ -41,7 +43,7 @@ class TestModules(unittest.TestCase):
         padding = [0, 0]
         y_without_padding = np.array([[[[54., 63., 72.],
                                         [99., 108., 117.],
-                                        [144., 153., 162.]]]]).astype(np.float32).reshape([1, 1,  3, 3])
+                                        [144., 153., 162.]]]]).astype(np.float32).reshape([1, 1, 3, 3])
         module2 = nn.Conv2d(1, 1, kernel_shape, stride, padding, dilation, weight_init='ones')
         t3 = module2.forward_cpu(t1)
         y2 = t3.host_data
@@ -49,7 +51,7 @@ class TestModules(unittest.TestCase):
 
         dy = np.array([[[[0., 1., 2.],
                          [3., 4., 5.],
-                         [6., 7., 8.]]]]).astype(np.float32).reshape([1, 1,  3, 3])
+                         [6., 7., 8.]]]]).astype(np.float32).reshape([1, 1, 3, 3])
         dx = np.array([[[[0., 1., 3., 3., 2.],
                          [3., 8., 15., 12., 7.],
                          [9., 21., 36., 27., 15.],
@@ -83,7 +85,7 @@ class TestModules(unittest.TestCase):
 
     def test_crossentropy(self):
         x = np.random.rand(3, 5).astype(np.float32)
-        labels = np.random.randint(0, high=5, size=(3, ))
+        labels = np.random.randint(0, high=5, size=(3,))
 
         t1 = madml.tensor(x)
         target = madml.tensor(labels)
@@ -93,6 +95,7 @@ class TestModules(unittest.TestCase):
 
         dx = module.backward_cpu()
         print(loss.host_data, dx.gradient.host_data)
+
 
 if __name__ == '__main__':
     unittest.main()

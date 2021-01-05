@@ -1,6 +1,6 @@
-import numpy as np
 import hipsternet.regularization as reg
 import hipsternet.utils as util
+import numpy as np
 
 
 def regularization(model, reg_type='l2', lam=1e-3):
@@ -72,7 +72,7 @@ def dhinge_loss(y_pred, y_train, margin=1):
 def squared_loss(model, y_pred, y_train, lam=1e-3):
     m = y_pred.shape[0]
 
-    data_loss = 0.5 * np.sum((util.onehot(y_train) - y_pred)**2) / m
+    data_loss = 0.5 * np.sum((util.onehot(y_train) - y_pred) ** 2) / m
     reg_loss = regularization(model, reg_type='l2', lam=lam)
 
     return data_loss + reg_loss
@@ -90,7 +90,7 @@ def dsquared_loss(y_pred, y_train):
 def l2_regression(model, y_pred, y_train, lam=1e-3):
     m = y_pred.shape[0]
 
-    data_loss = 0.5 * np.sum((y_train - y_pred)**2) / m
+    data_loss = 0.5 * np.sum((y_train - y_pred) ** 2) / m
     reg_loss = regularization(model, reg_type='l2', lam=lam)
 
     return data_loss + reg_loss

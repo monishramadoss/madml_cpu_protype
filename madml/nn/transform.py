@@ -3,8 +3,9 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from typing import List
 import math
+from typing import List
+
 import numba.typed as nbt
 import numpy as np
 from numba import njit, prange

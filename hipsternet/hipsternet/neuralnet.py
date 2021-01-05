@@ -1,12 +1,11 @@
-import numpy as np
-import hipsternet.loss as loss_fun
 import hipsternet.layer as l
+import hipsternet.loss as loss_fun
 import hipsternet.regularization as reg
 import hipsternet.utils as util
+import numpy as np
 
 
 class NeuralNet(object):
-
     loss_funs = dict(
         cross_ent=loss_fun.cross_entropy,
         hinge=loss_fun.hinge_loss,

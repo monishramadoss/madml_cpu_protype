@@ -2,7 +2,9 @@
 import gzip
 import os
 from urllib import request
+
 import numpy
+
 SOURCE_URL = 'http://yann.lecun.com/exdb/mnist/'
 
 
@@ -38,7 +40,7 @@ def extract_images(filename):
         data = numpy.frombuffer(buf, dtype=numpy.uint8)
         data = data.reshape(num_images, rows, cols, 1)
         return data
-        
+
 
 def dense_to_one_hot(labels_dense, num_classes=10):
     """Convert class labels from scalars to one-hot vectors."""
@@ -73,8 +75,8 @@ class DataSet(object):
             self._num_examples = 10000
         else:
             assert images.shape[0] == labels.shape[0], (
-                "images.shape: %s labels.shape: %s" % (images.shape,
-                                                       labels.shape))
+                    "images.shape: %s labels.shape: %s" % (images.shape,
+                                                           labels.shape))
             self._num_examples = images.shape[0]
             # Convert shape from [num examples, rows, columns, depth]
             # to [num examples, rows*columns] (assuming depth == 1)
@@ -133,6 +135,7 @@ class DataSet(object):
 def read_data_sets(train_dir, fake_data=False, one_hot=False):
     class DataSets(object):
         pass
+
     data_sets = DataSets()
     if fake_data:
         data_sets.train = DataSet([], [], fake_data=True)

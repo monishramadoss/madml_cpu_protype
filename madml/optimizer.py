@@ -39,9 +39,7 @@ class SGD(Optimizer):
     def step(self, closure=None) -> None:
         for x, p in self.params.items():
             for i in range(p.velocity.size):
-                p.velocity.host_data.ravel()[i] = self.defaults['momentum'] * p.velocity.host_data.ravel()[i]\
-
-                
-                                                  + self.defaults['lr'] * p.param.gradient.host_data.ravel()[i]
-                p.param.host_data.ravel()[i] -= p.velocity.host_data.ravel()[i]
+                p.velocity.host_data.ravel()[i] = self.defaults['momentum'] * p.velocity.host_data.ravel()[i] \
+                + self.defaults['lr'] * p.param.gradient.host_data.ravel()[i]
+            p.param.host_data.ravel()[i] -= p.velocity.host_data.ravel()[i]
         return

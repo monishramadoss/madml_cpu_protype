@@ -1,8 +1,9 @@
 import sys
+
 import numpy as np
+
 import hipsternet.neuralnet as nn
 import hipsternet.solver as solver
-
 
 time_step = 10
 n_iter = 1000000000
@@ -10,7 +11,6 @@ alpha = 1e-3
 print_after = 1000
 
 H = 64
-
 
 if __name__ == '__main__':
     with open('data/text_data/japan.txt', 'r') as f:

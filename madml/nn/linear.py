@@ -3,10 +3,12 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from madml import tensor, normal, zeros, kaiming_uniform
-from .module import Module, Parameter
-import numpy as np
 import math
+
+import numpy as np
+
+from madml import tensor, zeros, kaiming_uniform
+from .module import Module, Parameter
 
 
 class Linear(Module):
