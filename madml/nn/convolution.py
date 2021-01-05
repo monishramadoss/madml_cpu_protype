@@ -144,13 +144,14 @@ class ConvNd(Module):
         self.weight.param.gradient.reset()
 
         w_reshaped = self.weight.param.host_data.reshape([self.out_channels, -1])
-        dc.host_data = w_reshaped.T @ dy_reshaped
+        self.col.gradient.host_data = w_reshaped.T @ dy_reshaped
         _ = self.kernel.backward_cpu()
 
-        print(' conv input:', x.host_data.max(), x.gradient.host_data.max(),
-              ' weight:', self.weight.param.host_data.max(), self.weight.param.gradient.host_data.max(),
-              ' output:', y.host_data.max(), y.gradient.host_data.max())
+        print(' conv input:', x.host_data.max(), 'g', x.gradient.host_data.max(),
+              ' weight:', self.weight.param.host_data.max(), 'g', self.weight.param.gradient.host_data.max(),
+              ' output:', y.host_data.max(), 'g', y.gradient.host_data.max())
         y.zero_grad()
+        self.col.zero_grad()
         return x
 
 

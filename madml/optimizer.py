@@ -22,7 +22,7 @@ class Optimizer(object):
 
 
 class SGD(Optimizer):
-    def __init__(self, params: Dict[int, Parameter], lr: float = 1e-2, momentum: int = 0.9, dampening: int = 0,
+    def __init__(self, params: Dict[int, Parameter], lr: float = 1e-3, momentum: float = 0.0, dampening: int = 0,
                  weight_decay: float = 0, nesterov: bool = False) -> None:
         if lr < 0.0:
             raise ValueError("Invalid learning rate: {}".format(lr))
@@ -43,5 +43,5 @@ class SGD(Optimizer):
                 p.velocity.host_data.ravel()[i] = self.defaults['momentum'] * p.velocity.host_data.ravel()[i] \
                           + self.defaults['lr'] * p.param.gradient.host_data.ravel()[i]
                 p.param.host_data.ravel()[i] -= p.velocity.host_data.ravel()[i]
-            print(p.param.host_data.max())
+            print(p.param.host_data.max(), p.velocity.host_data.max())
         return

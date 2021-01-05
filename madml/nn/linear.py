@@ -44,8 +44,8 @@ class Linear(Module):
         self.weight.param.gradient.host_data = x.host_data.T @ y.gradient.host_data
         x.gradient.host_data = y.gradient.host_data @ self.weight.param.host_data.T
 
-        print(' linear input:', x.host_data.max(), x.gradient.host_data.max(),
-              ' weight:', self.weight.param.host_data.max(), self.weight.param.gradient.host_data.max(),
-              ' output:', y.host_data.max(), y.gradient.host_data.max())
-        y.zero_grad()
+        print(' linear input:', x.host_data.max(), 'g', x.gradient.host_data.max(),
+              ' weight:', self.weight.param.host_data.max(), 'g',self.weight.param.gradient.host_data.max(),
+              ' output:', y.host_data.max(), 'g', y.gradient.host_data.max())
+
         return x

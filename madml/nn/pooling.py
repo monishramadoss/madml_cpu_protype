@@ -100,6 +100,7 @@ class _MaxPoolNd(Module):
         self.col.reset()
         _ = self.kernel.backward_cpu()
         y.zero_grad()
+        self.col.zero_grad()
         return x
 
 

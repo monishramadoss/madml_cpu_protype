@@ -61,6 +61,8 @@ class vol2col(Module):
                  self.n_output_plane, self.index_length, nbt.List(self._vol), nbt.List(self._col),
                  nbt.List(self.kernel_size), nbt.List(self.stride), nbt.List(self.padding), nbt.List(self.dilation))
         x.gradient.host_data = tmp.reshape(x.shape)
+        self.col = zeros([self.n_output_plane, self.output_length])
+
         return x
 
 

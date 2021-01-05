@@ -53,6 +53,7 @@ class _Loss(Module):
         else:
             self.reduction = reduction
         self.loss = tensor([0], [1])
+        self.losses = []
 
     def regularize(self) -> float:
         reg_loss = 0.0
@@ -126,6 +127,7 @@ class CrossEntropyLoss(_WeightedLoss):
         self.cache.append(logit)
         self.cache.append(target)
         self.cache.append(p)
+        self.losses.append(self.loss.host_data.max())
         return self.loss
 
     def backward_cpu(self) -> tensor:

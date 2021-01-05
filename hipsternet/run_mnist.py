@@ -13,7 +13,7 @@ print_after = 100
 p_dropout = 0.8
 loss = 'cross_ent'
 nonlin = 'relu'
-solver = 'adam'
+solver = 'sgd'
 
 
 def prepro(X_train, X_val, X_test):

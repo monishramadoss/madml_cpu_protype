@@ -52,9 +52,9 @@ def load():
     return mnist["training_images"], mnist["training_labels"], mnist["test_images"], mnist["test_labels"]
 
 
-class mnist_model(nn.Module):
+class cnn_mnist_model(nn.Module):
     def __init__(self):
-        super(mnist_model, self).__init__()
+        super(cnn_mnist_model, self).__init__()
         self.conv1 = nn.Conv2d(1, 32, 3, padding=1)
         self.pool = nn.MaxPool2d(2, 2)
         self.conv2 = nn.Conv2d(32, 48, 3)
@@ -81,7 +81,30 @@ class mnist_model(nn.Module):
         return x
 
 
-def train_loop(model=mnist_model()):
+class dnn_mnist_model(nn.Module):
+    def __init__(self):
+        super(dnn_mnist_model, self).__init__()
+        self.fc1 = nn.Linear(28 * 28, 512)
+        self.fc2 = nn.Linear(512, 512)
+        self.fc3 = nn.Linear(512, 84)
+        self.fc4 = nn.Linear(84, 10)
+        self.relu1 = nn.ReLU()
+        self.relu2 = nn.ReLU()
+        self.relu3 = nn.ReLU()
+        self.relu4 = nn.ReLU()
+
+    def forward(self, x):
+        x = self.fc1(x)
+        x = self.relu1(x)
+        x = self.fc2(x)
+        x = self.relu2(x)
+        x = self.fc3(x)
+        x = self.relu4(x)
+        x = self.fc4(x)
+        return x
+
+
+def cnn_train_loop(model=cnn_mnist_model()):
     batchsize = 16
     x, y, x1, y1 = load()
     x = x.reshape((-1, batchsize, 1, 28, 28))
@@ -98,15 +121,44 @@ def train_loop(model=mnist_model()):
         loss = loss_fn(logit, t_y[i])
         loss.backward()
         optim.step()
-        print('===', i, logit.shape, loss.host_data)
-        if (loss.host_data < .01).all() \
-                or (np.abs(loss.host_data) == np.inf) \
-                or (loss.host_data == np.nan) \
-                or (i % 3 == 0 and i != 0):
+        exit_statement = (loss.host_data < .01).all() or \
+                         (np.abs(loss.host_data) == np.inf) or \
+                         (loss.host_data == np.nan)
 
+        if exit_statement and (i % 3 == 0 and i != 0):
             print('logit', logit.host_data[0])
             print('target', t_y[i].host_data[0])
             break
+        else:
+            print('===', i, logit.shape, loss.host_data)
 
 
-train_loop()
+def dnn_train_loop(model=dnn_mnist_model()):
+    batchsize = 16
+    x, y, x1, y1 = load()
+    x = x.reshape((-1, batchsize, 28 * 28))
+    y = y.reshape((-1, batchsize, 1))
+
+    t_x = madml.tensor(x)
+    t_y = madml.tensor(y)
+    loss_fn = nn.CrossEntropyLoss()
+    optim = optimzer.SGD(model.parameters())
+    for i in range(t_x.shape[0]):
+        optim.zero_grad()
+        logit = model(t_x[i])
+        loss = loss_fn(logit, t_y[i])
+        loss.backward()
+        optim.step()
+        exit_statement = (loss.host_data < .01).all() or \
+                         (np.abs(loss.host_data) == np.inf) or \
+                         (loss.host_data == np.nan)
+
+        if exit_statement and (i % 3 == 0 and i != 0):
+            print('logit', logit.host_data[0])
+            print('target', t_y[i].host_data[0])
+            break
+        else:
+            print('===', i, logit.shape, loss.host_data)
+
+
+dnn_train_loop()
