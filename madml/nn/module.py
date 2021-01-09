@@ -51,14 +51,10 @@ class Module(object):
         return self.forward_cpu(*args, **kwargs)
 
     def backward(self):
-        # print(type(self), 'backward')
-        # for x in self.cache:
-        #     if isinstance(x, tensor):
-        #         print(x.gradient.host_data.max(), end=' ')
-        dx = self.backward_cpu()
-        # if isinstance(dx, tensor):
-        #     print('\t', dx.shape, dx.host_data.max())
-        return dx
+        x = self.backward_cpu()
+        if isinstance(x, tensor):
+            x.reset_shape()
+        return x
 
     def forward_cpu(self, *args, **kwargs):
         raise NotImplementedError

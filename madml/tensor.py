@@ -55,7 +55,7 @@ class tensor(object):
         assert (self._host_memory.size == self.size)
 
     def __copy__(self):
-        new = tensor(self.data, self.init_shape)
+        new = tensor(self.hos, self.init_shape)
         new._grad = self._grad
         return new
 
@@ -115,7 +115,7 @@ class tensor(object):
     def host_data(self, value: np.ndarray) -> None:
         assert (value.size == self._host_memory.size)
         self.shape = list(value.shape)
-        self._host_memory = value
+        self._host_memory = value.astype(self._host_memory.dtype)
 
     @property
     def device_data(self) -> np.array:
@@ -135,7 +135,7 @@ class tensor(object):
         self.parent.clear()
         self.children.clear()
 
-    def reset(self) -> None:
+    def reset_shape(self) -> None:
         self._host_memory = self._host_memory.reshape(self.init_shape)
         self.shape = self.init_shape
         if self._grad is not None:
@@ -153,3 +153,13 @@ class tensor(object):
     def zero_grad(self):
         if self._grad is not None:
             self.gradient.host_data = np.zeros_like(self.gradient.host_data)
+
+    def onehot(self):
+        _max = (np.max(self._host_memory) + 1).astype(int)
+        y = np.zeros([self._host_memory.size, _max])
+        self._host_memory = self._host_memory.reshape(self.size)
+        for i in range(self.size):
+            y[i][self._host_memory[i].astype(int)] = 1
+        self._host_memory = self._host_memory.reshape(self.init_shape)
+        y = y.reshape(self.init_shape[:-1] + [_max])
+        return tensor(y, y.shape)

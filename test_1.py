@@ -96,6 +96,16 @@ class TestModules(unittest.TestCase):
         dx = module.backward_cpu()
         print(loss.host_data, dx.gradient.host_data)
 
+    def test_relu(self):
+        x = np.random.uniform(-2, 2, size=81).reshape([9, 9])
+        t1 = madml.tensor(x)
+        module = nn.ReLU()
+        logit = module.forward_cpu(t1)
+        logit.gradient.host_data = x
+        y = logit.host_data
+        dx = module.backward_cpu().gradient.host_data
+        self.assertTrue((np.sum(y) == np.sum(dx)).all())
+
 
 if __name__ == '__main__':
     unittest.main()

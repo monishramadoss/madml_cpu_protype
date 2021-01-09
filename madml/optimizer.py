@@ -5,6 +5,11 @@ from madml.nn import Parameter
 from .init import zeros_like
 
 
+def print_p(p: Parameter) -> None:
+    print('\tdata', p.param.host_data.max(),
+          '\n\tgrad', p.param.gradient.host_data.max(),
+          '\n\tvelo', p.velocity.host_data.max())
+
 
 class Optimizer(object):
     _use_velocity: bool
@@ -24,7 +29,7 @@ class Optimizer(object):
 
 
 class SGD(Optimizer):
-    def __init__(self, params: Dict[int, Parameter], lr: float = 1e-3, momentum: float = 0.9, dampening: int = 0,
+    def __init__(self, params: Dict[int, Parameter], lr: float = 1e-3, momentum: float = 0.0, dampening: int = 0,
                  weight_decay: float = 0, nesterov: bool = False) -> None:
         if lr < 0.0:
             raise ValueError("Invalid learning rate: {}".format(lr))
@@ -40,14 +45,14 @@ class SGD(Optimizer):
 
     def step(self, closure=None) -> None:
         for x, p in self.params.items():
-            for i in range(p.velocity.size):
-                p.velocity.host_data.ravel()[i] = self.defaults['momentum'] * p.velocity.host_data.ravel()[i] \
-                                                  + self.defaults['lr'] * p.param.gradient.host_data.ravel()[i]
-                p.param.host_data.ravel()[i] -= p.velocity.host_data.ravel()[i]
+            p.velocity.host_data = self.defaults['momentum'] * p.velocity.host_data \
+                                   + self.defaults['lr'] * p.param.gradient.host_data
+            p.param.host_data -= p.velocity.host_data
 
 
 def exp_running_avg(running, new, gamma=.9):
     return gamma * running + (1. - gamma) * new
+
 
 class Adam(Optimizer):
     def __init__(self, params: Dict[int, Parameter], lr: float = 1e-3, betas: List[float] = (0.9, 0.999),
@@ -70,7 +75,7 @@ class Adam(Optimizer):
 
     def step(self, closure=None) -> None:
         for k, p in self.params.items():
-            p.param.reset()
+            p.param.reset_shape()
             m = self.M[k].host_data
             r = p.velocity.host_data
             self.M[k].host_data = exp_running_avg(m, p.param.host_data, self.defaults['betas'][0])
@@ -78,4 +83,5 @@ class Adam(Optimizer):
             m_k_hat = self.M[k].host_data / (1. - self.defaults['betas'][0] ** self.counter)
             r_k_hat = p.velocity.host_data / (1. - self.defaults['betas'][1] ** self.counter)
             p.param.host_data -= self.defaults['lr'] * m_k_hat / np.sqrt(r_k_hat) + self.defaults['eps']
+            print_p(p)
         self.counter += 1

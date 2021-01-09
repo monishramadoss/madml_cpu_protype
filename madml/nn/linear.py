@@ -40,14 +40,18 @@ class Linear(Module):
         if self.bias is not None:
             self.bias.param.gradient.host_data = np.sum(dy.host_data, axis=0)
 
-        self.weight.param.gradient.host_data = x.host_data.T @ y.gradient.host_data
-        x.gradient.host_data = y.gradient.host_data @ self.weight.param.host_data.T
-
+        self.weight.param.gradient.host_data = x.host_data.T @ dy.host_data
+        x.gradient.host_data = dy.host_data @ self.weight.param.host_data.T
+        self.print()
         y.zero_grad()
         return x
 
     def print(self) -> None:
         x, y = self.cache
-        print(' linear input:', x.host_data.max(), 'g', x.gradient.host_data.max(),
-              ' weight:', self.weight.param.host_data.max(), 'g',self.weight.param.gradient.host_data.max(),
+        print('linear:', x.shape, y.shape)
+        print(' max input:', x.host_data.max(), 'g', x.gradient.host_data.max(),
+              ' weight:', self.weight.param.host_data.max(), 'g', self.weight.param.gradient.host_data.max(),
               ' output:', y.host_data.max(), 'g', y.gradient.host_data.max())
+        print(' min input:', x.host_data.min(), 'g', x.gradient.host_data.min(),
+              ' weight:', self.weight.param.host_data.min(), 'g', self.weight.param.gradient.host_data.min(),
+              ' output:', y.host_data.max(), 'g', y.gradient.host_data.min())

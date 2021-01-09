@@ -78,7 +78,7 @@ class _MaxPoolNd(Module):
             y.host_data[i] = self.col.host_data[i][m_idx, range(m_idx.size)]
 
         y.reshape([self.batch_size, self.in_channels, self._col[0], self._col[1], self._col[2]])
-        x.reset()
+        x.reset_shape()
 
         self.cache.append(x)
         self.cache.append(y)
@@ -97,7 +97,7 @@ class _MaxPoolNd(Module):
             d_col[i][m_idx, range(m_idx.size)] = dy_col[i]
 
         self.col.gradient.host_data = d_col
-        self.col.reset()
+        self.col.reset_shape()
         _ = self.kernel.backward_cpu()
         y.zero_grad()
         return x
@@ -117,7 +117,7 @@ class MaxPool1d(_MaxPoolNd):
     def forward_cpu(self, x: tensor) -> tensor:
         x.reshape([x.shape[0], x.shape[1], 1, 1, x.shape[2]])
         y = super(MaxPool1d, self).forward_cpu(x)
-        x.reset()
+        x.reset_shape()
         y.reshape([x.shape[0], y.shape[1], y.shape[-1]])
         return y
 
@@ -126,8 +126,8 @@ class MaxPool1d(_MaxPoolNd):
         y.reshape([x.shape[0], y.shape[1], 1, 1, y.shape[2]])
         x.reshape([x.shape[0], x.shape[1], 1, 1, x.shape[2]])
         x = super(MaxPool1d, self).backward_cpu()
-        x.reset()
-        y.reset()
+        x.reset_shape()
+        y.reset_shape()
         return x
 
 
@@ -145,7 +145,7 @@ class MaxPool2d(_MaxPoolNd):
     def forward_cpu(self, x: tensor) -> tensor:
         x.reshape([x.shape[0], x.shape[1], 1, x.shape[2], x.shape[3]])
         y = super(MaxPool2d, self).forward_cpu(x)
-        x.reset()
+        x.reset_shape()
         y.reshape([x.shape[0], y.shape[1], y.shape[3], y.shape[4]])
         y.init_shape = y.shape
         return y
@@ -155,8 +155,8 @@ class MaxPool2d(_MaxPoolNd):
         y.reshape([y.shape[0], y.shape[1], 1, y.shape[2], y.shape[3]])
         x.reshape([x.shape[0], x.shape[1], 1, x.shape[2], x.shape[3]])
         x = super(MaxPool2d, self).backward_cpu()
-        x.reset()
-        y.reset()
+        x.reset_shape()
+        y.reset_shape()
         return x
 
 

@@ -141,7 +141,7 @@ class ConvNd(Module):
 
         dy_reshaped = dy.host_data.transpose([1, 0, 2, 3, 4]).reshape(self.out_channels, -1)
         self.weight.param.gradient.host_data = dy_reshaped @ self.col.host_data.T
-        self.weight.param.gradient.reset()
+        self.weight.param.gradient.reset_shape()
 
         w_reshaped = self.weight.param.host_data.reshape([self.out_channels, -1])
         self.col.gradient.host_data = w_reshaped.T @ dy_reshaped
@@ -151,10 +151,13 @@ class ConvNd(Module):
 
     def print_weights(self) -> None:
         x, y = self.cache
-        print(' conv input:', x.host_data.max(), 'g', x.gradient.host_data.max(),
+        print('conv:', x.shape, y.shape)
+        print(' max input:', x.host_data.max(), 'g', x.gradient.host_data.max(),
               ' weight:', self.weight.param.host_data.max(), 'g', self.weight.param.gradient.host_data.max(),
               ' output:', y.host_data.max(), 'g', y.gradient.host_data.max())
-
+        print(' min input:', x.host_data.min(), 'g', x.gradient.host_data.min(),
+              ' weight:', self.weight.param.host_data.min(), 'g', self.weight.param.gradient.host_data.min(),
+              ' output:', y.host_data.max(), 'g', y.gradient.host_data.min())
 
 class Conv1d(ConvNd):
     def __init__(self,
@@ -174,7 +177,7 @@ class Conv1d(ConvNd):
     def forward_cpu(self, x: tensor) -> tensor:
         x.reshape([x.shape[0], x.shape[1], 1, 1, x.shape[2]])
         y = super(Conv1d, self).forward_cpu(x)
-        x.reset()
+        x.reset_shape()
         y.reshape([x.shape[0], y.shape[1], y.shape[4]])
         y.init_shape = y.shape
         return y
@@ -184,8 +187,8 @@ class Conv1d(ConvNd):
         y.reshape([x.shape[0], y.shape[1], 1, 1, y.shape[2]])
         x.reshape([x.shape[0], x.shape[1], 1, 1, x.shape[2]])
         x = super(Conv1d, self).backward_cpu()
-        x.reset()
-        y.reset()
+        x.reset_shape()
+        y.reset_shape()
         return x
 
 
@@ -207,7 +210,7 @@ class Conv2d(ConvNd):
     def forward_cpu(self, x: tensor) -> tensor:
         x.reshape([x.shape[0], x.shape[1], 1, x.shape[2], x.shape[3]])
         y = super(Conv2d, self).forward_cpu(x)
-        x.reset()
+        x.reset_shape()
         y.reshape([y.shape[0], y.shape[1], y.shape[3], y.shape[4]])
         y.init_shape = y.shape
         return y
@@ -217,8 +220,8 @@ class Conv2d(ConvNd):
         y.reshape([y.shape[0], y.shape[1], 1, y.shape[2], y.shape[3]])
         x.reshape([x.shape[0], x.shape[1], 1, x.shape[2], x.shape[3]])
         x = super(Conv2d, self).backward_cpu()
-        x.reset()
-        y.reset()
+        x.reset_shape()
+        y.reset_shape()
         return x
 
 

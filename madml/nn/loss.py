@@ -155,6 +155,7 @@ class MSELoss(_Loss):
         super(MSELoss, self).__init__(size_average, reduce, reduction)
 
     def forward_cpu(self, logit: tensor, target: tensor) -> tensor:
+        assert(logit.shape == target.shape)
         m = logit.shape[0]
         data_loss = (np.square(logit.host_data - target.host_data)).mean(axis=0)
         data_loss /= m
@@ -164,11 +165,14 @@ class MSELoss(_Loss):
         elif self.reduction == 'sum':
             loss = np.sum(data_loss)
 
-        self.loss.host_data = loss + self.regularize()
+        reg = self.regularize()
+        self.loss.host_data = loss + reg
+        print('l:', loss.max(), reg)
 
         self.cache.append(logit)
         self.cache.append(target)
         self.cache.append(m)
+        self.losses.append(loss)
         return self.loss
 
     def backward_cpu(self) -> tensor:
