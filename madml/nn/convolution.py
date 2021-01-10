@@ -127,8 +127,7 @@ class ConvNd(Module):
         if self._use_bias and self.bias is not None:
             y.host_data += self.bias.param.host_data
 
-        self.cache.append(x)
-        self.cache.append(y)
+        self.cache = [x, y]
         return y
 
     def backward_cpu(self) -> tensor:
@@ -158,6 +157,7 @@ class ConvNd(Module):
         print(' min input:', x.host_data.min(), 'g', x.gradient.host_data.min(),
               ' weight:', self.weight.param.host_data.min(), 'g', self.weight.param.gradient.host_data.min(),
               ' output:', y.host_data.max(), 'g', y.gradient.host_data.min())
+
 
 class Conv1d(ConvNd):
     def __init__(self,

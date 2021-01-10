@@ -80,9 +80,7 @@ class _MaxPoolNd(Module):
         y.reshape([self.batch_size, self.in_channels, self._col[0], self._col[1], self._col[2]])
         x.reset_shape()
 
-        self.cache.append(x)
-        self.cache.append(y)
-        self.cache.append(max_idx)
+        self.cache = [x, y, max_idx]
         return y
 
     def backward_cpu(self) -> tensor:

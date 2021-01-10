@@ -86,16 +86,12 @@ class dnn_mnist_model(nn.Module):
         super(dnn_mnist_model, self).__init__()
         self.fc1 = nn.Linear(28 * 28, 1024)
         self.fc2 = nn.Linear(1024, 1024)
-        self.fc3 = nn.Linear(1024, 1024)
-        self.fc4 = nn.Linear(1024, 512)
-        self.fc5 = nn.Linear(512, 128)
-        self.fc6 = nn.Linear(128, 10)
+        self.fc3 = nn.Linear(1024, 512)
+        self.fc4 = nn.Linear(512, 10)
         self.relu1 = nn.ReLU()
         self.relu2 = nn.ReLU()
         self.relu3 = nn.ReLU()
         self.relu4 = nn.ReLU()
-        self.relu5 = nn.ReLU()
-        self.relu6 = nn.ReLU()
 
     def forward(self, x):
         x = self.fc1(x)
@@ -106,10 +102,6 @@ class dnn_mnist_model(nn.Module):
         x = self.relu3(x)
         x = self.fc4(x)
         x = self.relu4(x)
-        x = self.fc5(x)
-        x = self.relu5(x)
-        x = self.fc6(x)
-        x = self.relu6(x)
         return x
 
 
@@ -150,10 +142,10 @@ def dnn_train_loop(model_class=dnn_mnist_model):
     x = x.reshape((-1, 28 * 28))[:16]
     y = y.reshape((-1, 1))[:16]
 
-    t_x = madml.tensor(x)
+    t_x = madml.tensor(x / 255)
     t_y = madml.tensor(y).onehot()
     loss_fn = nn.MSELoss()
-    optim = optimzer.SGD(model.parameters(), lr=1e-2)
+    optim = optimzer.Adam(model.parameters(), lr=1e-3)
     for i in range(10):
         optim.zero_grad()
         logit = model(t_x)

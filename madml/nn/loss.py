@@ -32,16 +32,6 @@ def l2_reg(w: tensor, lam: float = 1e-3) -> float:
     return .5 * lam * np.sum(w.host_data * w.host_data)
 
 
-def dl1_reg(w: tensor, lam: float = 1e-3, esp: float = 1e-8) -> tensor:
-    w.host_data *= lam
-    w.host_data /= np.abs(w.host_data + esp)
-    return w
-
-
-def dl2_reg(w: tensor, lam: float = 1e-3) -> tensor:
-    w.host_data *= lam
-    return w
-
 
 class _Loss(Module):
     reduction: str
@@ -125,9 +115,7 @@ class CrossEntropyLoss(_WeightedLoss):
         self.loss.host_data = loss + reg
         print('l:', loss.max(), reg)
 
-        self.cache.append(logit)
-        self.cache.append(target)
-        self.cache.append(p)
+        self.cache = [logit, target, p]
         self.losses.append(loss)
         return self.loss
 
@@ -144,7 +132,6 @@ class CrossEntropyLoss(_WeightedLoss):
 
         dx /= self.batchsize
         x.gradient.host_data = dx
-        #print(dx)
         return x
 
 
@@ -158,7 +145,7 @@ class MSELoss(_Loss):
         assert(logit.shape == target.shape)
         m = logit.shape[0]
         data_loss = (np.square(logit.host_data - target.host_data)).mean(axis=0)
-        data_loss /= m
+
 
         if self.reduction == 'mean':
             loss = np.mean(data_loss)
@@ -169,14 +156,12 @@ class MSELoss(_Loss):
         self.loss.host_data = loss + reg
         print('l:', loss.max(), reg)
 
-        self.cache.append(logit)
-        self.cache.append(target)
-        self.cache.append(m)
+        self.cache = [logit, target, m]
         self.losses.append(loss)
         return self.loss
 
     def backward_cpu(self) -> tensor:
         x, t, m = self.cache
         grad_y = 2 * (x.host_data - t.host_data)
-        x.gradient.host_data = grad_y
+        x.gradient.host_data = grad_y / float(m)
         return x

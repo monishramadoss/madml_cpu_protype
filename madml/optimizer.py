@@ -1,6 +1,8 @@
 from collections import defaultdict
 from typing import Dict, List
 import numpy as np
+
+from madml import tensor
 from madml.nn import Parameter
 from .init import zeros_like
 
@@ -21,12 +23,23 @@ class Optimizer(object):
         self._use_velocity = False
 
     def zero_grad(self) -> None:
+        print('parameter#', len(self.params.items()))
         for _, t in self.params.items():
             t.zero_grad()
 
     def step(self):
         raise NotImplementedError
 
+
+def dl1_reg(w: np.ndarray, lam: float = 1e-3, esp: float = 1e-8) -> np.ndarray:
+    w *= lam
+    w /= np.abs(w + esp)
+    return w
+
+
+def dl2_reg(w: np.ndarray, lam: float = 1e-3) -> np.ndarray:
+    w *= lam
+    return w
 
 class SGD(Optimizer):
     def __init__(self, params: Dict[int, Parameter], lr: float = 1e-3, momentum: float = 0.0, dampening: int = 0,
@@ -45,6 +58,9 @@ class SGD(Optimizer):
 
     def step(self, closure=None) -> None:
         for x, p in self.params.items():
+            p.param.reset_shape()
+            p.param.gradient.host_data += dl2_reg(p.param.host_data, self.defaults['lr'])
+            print_p(p)
             p.velocity.host_data = self.defaults['momentum'] * p.velocity.host_data \
                                    + self.defaults['lr'] * p.param.gradient.host_data
             p.param.host_data -= p.velocity.host_data
@@ -76,6 +92,7 @@ class Adam(Optimizer):
     def step(self, closure=None) -> None:
         for k, p in self.params.items():
             p.param.reset_shape()
+            p.param.gradient.host_data += dl2_reg(p.param.host_data, self.defaults['lr'])
             m = self.M[k].host_data
             r = p.velocity.host_data
             self.M[k].host_data = exp_running_avg(m, p.param.host_data, self.defaults['betas'][0])

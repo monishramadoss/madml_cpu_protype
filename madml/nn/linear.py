@@ -29,8 +29,7 @@ class Linear(Module):
         if self.bias is not None:
             y.host_data += self.bias.param.host_data
 
-        self.cache.append(x)
-        self.cache.append(y)
+        self.cache = [x, y]
         return y
 
     def backward_cpu(self) -> tensor:
@@ -43,7 +42,6 @@ class Linear(Module):
         self.weight.param.gradient.host_data = x.host_data.T @ dy.host_data
         x.gradient.host_data = dy.host_data @ self.weight.param.host_data.T
         self.print()
-        y.zero_grad()
         return x
 
     def print(self) -> None:

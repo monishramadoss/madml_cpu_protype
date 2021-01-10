@@ -64,9 +64,7 @@ class Module(object):
 
     def __call__(self, *args, **kwargs):
         # print(type(self), 'forward')
-        self.cache.clear()
         y = self.forward(*args, **kwargs)
-
         if isinstance(y, tuple) or isinstance(y, list):
             for x in y:
                 self.visited[x.id] = False
@@ -86,7 +84,7 @@ class Module(object):
             self.registered = True
 
         # if isinstance(y, tensor):
-        #      print('\t', y.shape, y.host_data.max())
+        #      print('\t', y.shape, y.host_data.max(), y.host_data.min())
         return y
 
     def parameters(self) -> Dict[int, Parameter]:
