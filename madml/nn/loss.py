@@ -178,6 +178,5 @@ class MSELoss(_Loss):
     def backward_cpu(self) -> tensor:
         x, t, m = self.cache
         grad_y = 2 * (x.host_data - t.host_data)
-        grad_y /= m
         x.gradient.host_data = grad_y
         return x
