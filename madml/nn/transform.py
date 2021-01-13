@@ -50,7 +50,7 @@ class vol2col(Module):
         _vol2col(x.host_data.ravel(), self.col.host_data.ravel(), self.batch_size, self.in_channels,
                  self.n_output_plane, self.index_length, nbt.List(self._vol), nbt.List(self._col),
                  nbt.List(self.kernel_size), nbt.List(self.stride), nbt.List(self.padding), nbt.List(self.dilation))
-        self.cache.append(x)
+        self.cache = [x]
         return self.col
 
     def backward_cpu(self):
@@ -62,9 +62,16 @@ class vol2col(Module):
                  nbt.List(self.kernel_size), nbt.List(self.stride), nbt.List(self.padding), nbt.List(self.dilation))
         x.gradient.host_data = tmp.reshape(x.shape)
         self.col = zeros([self.n_output_plane, self.output_length])
-        self.col.zero_grad()
+
         return x
 
+    def print_l(self):
+        x,y = self.cache[0], self.col
+        super(vol2col, self).print_l()
+        print('\tmax input:', x.host_data.max(), 'g', x.gradient.host_data.max(),
+              ' output:', y.host_data.max(), 'g', y.gradient.host_data.max())
+        print('\tmin input:', x.host_data.min(), 'g', x.gradient.host_data.min(),
+              ' output:', y.host_data.min(), 'g', y.gradient.host_data.min())
 
 class transpose(Module):
     __constants__ = ['axes']

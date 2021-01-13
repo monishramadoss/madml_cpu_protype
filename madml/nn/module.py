@@ -14,7 +14,7 @@ global module_cache
 module_cache = {}
 parameter_cache = {}
 execution_order = []
-DEBUG = False
+DEBUG = True
 
 
 class Parameter(object):
@@ -26,7 +26,7 @@ class Parameter(object):
         self.param = init_fn(shape)
         self.device = 'gpu' if on_gpu else 'cpu'
         self.shared_devices = shared_devices
-        self.velocity = zeros(shape)
+        self.optimizer_stuff = {}
         parameter_cache[id(self)] = self
 
     def zero_grad(self, ) -> None:
@@ -46,12 +46,15 @@ class Module(object):
         self.id = id(self)
         self.y = None
         module_cache[self.id] = self
+        self.print_out_flag = False
 
     def forward(self, *args, **kwargs):
         return self.forward_cpu(*args, **kwargs)
 
     def backward(self):
         x = self.backward_cpu()
+        if DEBUG:
+            self.print_l()
         if isinstance(x, tensor):
             x.reset_shape()
         return x
@@ -70,19 +73,21 @@ class Module(object):
                 self.visited[x.id] = False
                 if self not in x.parent:
                     x.parent += [self]
+                x.zero_grad()
         else:
             self.visited[y.id] = False
             if self not in y.parent:
                 y.parent += [self]
+            y.zero_grad()
         for x in args:
             self.visited[x.id] = False
             if self not in x.children:
                 x.children += [self]
+            x.zero_grad()
 
         if not self.registered:
             execution_order.append(self)
             self.registered = True
-
         # if isinstance(y, tensor):
         #      print('\t', y.shape, y.host_data.max(), y.host_data.min())
         return y
@@ -90,3 +95,11 @@ class Module(object):
     def parameters(self) -> Dict[int, Parameter]:
         x = self.id
         return parameter_cache
+
+    def print_l(self):
+        print(type(self), end=': ')
+        for t in self.cache:
+            if isinstance(t, tensor):
+                print(t.shape, end=' ')
+        print()
+        pass

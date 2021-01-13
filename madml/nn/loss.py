@@ -32,7 +32,6 @@ def l2_reg(w: tensor, lam: float = 1e-3) -> float:
     return .5 * lam * np.sum(w.host_data * w.host_data)
 
 
-
 class _Loss(Module):
     reduction: str
 
@@ -54,6 +53,13 @@ class _Loss(Module):
             elif self.reduction == 'sum' or self.reduction == 'l1':
                 reg_loss += l1_reg(p.param)
         return reg_loss
+
+    def print_l(self):
+        super(_Loss, self).print_l()
+        print('l', self.losses[-1][0].max(), 'r', self.losses[-1][1])
+
+    def accuracy(self):
+        raise NotImplementedError
 
 
 class _WeightedLoss(_Loss):
@@ -113,10 +119,8 @@ class CrossEntropyLoss(_WeightedLoss):
             loss = np.sum(loss)
         reg = self.regularize()
         self.loss.host_data = loss + reg
-        print('l:', loss.max(), reg)
-
         self.cache = [logit, target, p]
-        self.losses.append(loss)
+        self.losses.append((loss, reg))
         return self.loss
 
     def backward_cpu(self) -> tensor:
@@ -142,10 +146,9 @@ class MSELoss(_Loss):
         super(MSELoss, self).__init__(size_average, reduce, reduction)
 
     def forward_cpu(self, logit: tensor, target: tensor) -> tensor:
-        assert(logit.shape == target.shape)
+        assert (logit.shape == target.shape)
         m = logit.shape[0]
-        data_loss = (np.square(logit.host_data - target.host_data)).mean(axis=0)
-
+        data_loss = 0.5 * (np.square(logit.host_data - target.host_data)).mean(axis=0)
 
         if self.reduction == 'mean':
             loss = np.mean(data_loss)
@@ -154,14 +157,17 @@ class MSELoss(_Loss):
 
         reg = self.regularize()
         self.loss.host_data = loss + reg
-        print('l:', loss.max(), reg)
 
         self.cache = [logit, target, m]
-        self.losses.append(loss)
+        self.losses.append((loss, reg))
         return self.loss
 
     def backward_cpu(self) -> tensor:
         x, t, m = self.cache
-        grad_y = 2 * (x.host_data - t.host_data)
-        x.gradient.host_data = grad_y / float(m)
+        grad_y = (x.host_data - t.host_data)
+        x.gradient.host_data = grad_y
         return x
+
+    def accuracy(self):
+        x, t, m = self.cache
+        return np.square(x.host_data - t.host_data).mean()

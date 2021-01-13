@@ -23,7 +23,6 @@ class ReLU(Module):
         return inplace_str
 
     def forward_cpu(self, x: tensor) -> tensor:
-
         tmp = x.host_data > 0
         data = x.host_data * tmp
         if self.inplace:
@@ -41,15 +40,12 @@ class ReLU(Module):
         dx, dy = x.gradient, y.gradient
         arr = dy.host_data.reshape(x.shape) * tmp
         x.gradient.host_data = arr.reshape(x.shape)
-        self.print()
-        if not self.inplace:
-            y.zero_grad()
         return x
 
-    def print(self) -> None:
+    def print_l(self) -> None:
         x, t, y = self.cache
-        print('relu:', x.shape, y.shape)
-        print(' max input:', x.host_data.max(), 'g', x.gradient.host_data.max(),
+        super(ReLU, self).print_l()
+        print('\tmax input:', x.host_data.max(), 'g', x.gradient.host_data.max(),
               ' output:', y.host_data.max(), 'g', y.gradient.host_data.max())
-        print(' min input:', x.host_data.min(), 'g', x.gradient.host_data.min(),
+        print('\tmin input:', x.host_data.min(), 'g', x.gradient.host_data.min(),
               ' output:', y.host_data.min(), 'g', y.gradient.host_data.min())

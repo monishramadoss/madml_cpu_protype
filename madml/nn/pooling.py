@@ -97,8 +97,15 @@ class _MaxPoolNd(Module):
         self.col.gradient.host_data = d_col
         self.col.reset_shape()
         _ = self.kernel.backward_cpu()
-        y.zero_grad()
         return x
+
+    def print_l(self):
+        x, y, _ = self.cache
+        super(_MaxPoolNd, self).print_l()
+        print('\tmax input:', x.host_data.max(), 'g', x.gradient.host_data.max(),
+              ' output:', y.host_data.max(), 'g', y.gradient.host_data.max())
+        print('\tmin input:', x.host_data.min(), 'g', x.gradient.host_data.min(),
+              ' output:', y.host_data.min(), 'g', y.gradient.host_data.min())
 
 
 class MaxPool1d(_MaxPoolNd):
