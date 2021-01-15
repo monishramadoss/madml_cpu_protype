@@ -19,15 +19,15 @@ DEBUG = True
 
 class Parameter(object):
     param: tensor
+    optimizer_stuff: List[tensor]
     device: str
     shared_devices: bool
 
     def __init__(self, init_fn, shape: List[int], on_gpu: bool = False, shared_devices: bool = False) -> None:
         self.param = init_fn(shape)
+        self.optimizer_stuff = []
         self.device = 'gpu' if on_gpu else 'cpu'
         self.shared_devices = shared_devices
-        self.optimizer_stuff = {}
-        parameter_cache[id(self)] = self
 
     def zero_grad(self, ) -> None:
         for i in range(self.param.size):
