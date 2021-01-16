@@ -47,7 +47,7 @@ class _Loss(Module):
     def regularize(self) -> float:
         reg_loss = 0.0
         params = self.parameters()
-        for _, p in params.items():
+        for p in params:
             if self.reduction == 'mean' or self.reduction == 'l2':
                 reg_loss += l2_reg(p.param)
             elif self.reduction == 'sum' or self.reduction == 'l1':

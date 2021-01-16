@@ -31,7 +31,7 @@ def exp_running_avg(running, new, gamma=.9):
 class Optimizer(object):
     _use_velocity: bool
 
-    def __init__(self, params: Dict[int, Parameter], defaults: dict) -> None:
+    def __init__(self, params: List[Parameter], defaults: dict) -> None:
         self.defaults = defaults
         self.state = defaultdict(dict)
         self.params = params
@@ -39,8 +39,8 @@ class Optimizer(object):
 
     def zero_grad(self) -> None:
         if DEBUG:
-            print('parameter#', len(self.params.items()))
-        for _, t in self.params.items():
+            print('parameter#', len(self.params))
+        for t in self.params:
             t.zero_grad()
 
     def step(self):
@@ -48,7 +48,7 @@ class Optimizer(object):
 
 
 class SGD(Optimizer):
-    def __init__(self, params: Dict[int, Parameter], lr: float = 1e-3, momentum: float = 0.0, dampening: int = 0,
+    def __init__(self, params: List[Parameter], lr: float = 1e-3, momentum: float = 0.0, dampening: int = 0,
                  weight_decay: float = 0, nesterov: bool = False) -> None:
         if lr < 0.0:
             raise ValueError("Invalid learning rate: {}".format(lr))
@@ -63,12 +63,12 @@ class SGD(Optimizer):
         super(SGD, self).__init__(params, defaults)
 
         if momentum > 0.0:
-            for x, p in self.params.items():
-                p.optimizer_stuff = [tensor([0. for _ in p.param.size], p.param.shape, requires_grad=nesterov)]
+            for p in self.params:
+                p.optimizer_stuff = [tensor([0.0 for _ in range(p.param.size)], p.param.shape, requires_grad=nesterov)]
 
 
     def step(self, closure=None) -> None:
-        for k, p in self.params.items():
+        for p in self.params:
             p.param.reset_shape()
             p.param.gradient.host_data += dl2_reg(p.param.host_data, self.defaults['lr'])
 
@@ -89,7 +89,7 @@ class SGD(Optimizer):
 
 
 class Adam(Optimizer):
-    def __init__(self, params: Dict[int, Parameter], lr: float = 1e-3, betas: List[float] = (0.9, 0.999),
+    def __init__(self, params: List[Parameter], lr: float = 1e-3, betas: List[float] = (0.9, 0.999),
                  eps: float = 1e-8, weight_decay: float = 0.0, amsgrad: bool = False) -> None:
         if not 0.0 <= lr:
             raise ValueError("Invalid learning rate: {}".format(lr))
@@ -107,14 +107,14 @@ class Adam(Optimizer):
         self.counter = 1
         super(Adam, self).__init__(params, defaults)
 
-        for x, p in self.params.items():
+        for p in self.params:
             p.optimizer_stuff = [
-                tensor([0. for _ in p.param.size], p.param.shape, requires_grad=True),
-                tensor([0. for _ in p.param.size], p.param.shape, requires_grad=True)
+                tensor([0.0 for _ in range(p.param.size)], p.param.shape, requires_grad=True),
+                tensor([0.0 for _ in range(p.param.size)], p.param.shape, requires_grad=True)
             ]
 
     def step(self, closure=None) -> None:
-        for k, p in self.params.items():
+        for p in self.params:
             p.param.reset_shape()
             p.param.gradient.host_data += dl2_reg(p.param.host_data, self.defaults['lr'])
 
@@ -146,7 +146,7 @@ class Adam(Optimizer):
 
 
 class Adagrad(Optimizer):
-    def __init__(self, params: Dict[int, Parameter], lr: float = 1e-2, lr_decay: float = 0.,
+    def __init__(self, params: List[Parameter], lr: float = 1e-2, lr_decay: float = 0.,
                  weight_decay: float = 0, initial_accumulator_value: int = 0, eps: float = 1e-10) -> None:
 
         if not 0.0 <= lr:
@@ -164,11 +164,11 @@ class Adagrad(Optimizer):
                         initial_accumulator_value=initial_accumulator_value)
         super(Adagrad, self).__init__(params, defaults)
 
-        for x, p in self.params.items():
-            p.optimizer_stuff = [tensor([0. for _ in p.param.size], p.param.shape, requires_grad=False)]
+        for p in self.params:
+            p.optimizer_stuff = [tensor([0.0 for _ in range(p.param.size)], p.param.shape, requires_grad=False)]
 
     def step(self, closure=None) -> None:
-        for k, p in self.params.items():
+        for p in self.params:
             p.param.reset_shape()
             p.param.gradient.host_data += dl2_reg(p.param.host_data, self.defaults['lr'])
 
@@ -203,7 +203,7 @@ class RMSprop(Optimizer):
         super(RMSprop, self).__init__(params, defaults)
 
         for x, p in self.params.items():
-            p.optimizer_stuff = [tensor([0. for _ in p.param.size], p.param.shape, requires_grad=False)]
+            p.optimizer_stuff = [tensor([0.0 for _ in range(p.param.size)], p.param.shape, requires_grad=False)]
 
     def step(self, closure=None) -> None:
         for k, p in self.params.items():
@@ -244,8 +244,8 @@ class Nadam(Optimizer):
 
         for x, p in self.params.items():
             p.optimizer_stuff = [
-                tensor([0. for _ in p.param.size], p.param.shape, requires_grad=False),
-                tensor([0. for _ in p.param.size], p.param.shape, requires_grad=False)
+                tensor([0.0 for _ in range(p.param.size)], p.param.shape, requires_grad=False),
+                tensor([0.0 for _ in range(p.param.size)], p.param.shape, requires_grad=False)
             ]
 
     def step(self, closure=None) -> None:

@@ -27,8 +27,10 @@ class tensor(object):
     on_device: bool
     id: int
 
-    def __init__(self, data: Union[List[Union[float, int, bytes, bool]], np.ndarray], shape: List[int] = [],
+    def __init__(self, data: Union[List[Union[float, int, bytes, bool]], np.ndarray], shape=None,
                  requires_grad: bool = True) -> None:
+        if shape is None:
+            shape = []
         if isinstance(data, np.ndarray):
             self._host_memory = data.astype(np.float32)
             self.shape = list(data.shape)

@@ -12,7 +12,7 @@ global parameter_cache
 global module_cache
 
 module_cache = {}
-parameter_cache = {}
+parameter_cache = []
 execution_order = []
 DEBUG = True
 
@@ -28,6 +28,7 @@ class Parameter(object):
         self.optimizer_stuff = []
         self.device = 'gpu' if on_gpu else 'cpu'
         self.shared_devices = shared_devices
+        parameter_cache.append(self)
 
     def zero_grad(self, ) -> None:
         for i in range(self.param.size):
@@ -92,7 +93,7 @@ class Module(object):
         #      print('\t', y.shape, y.host_data.max(), y.host_data.min())
         return y
 
-    def parameters(self) -> Dict[int, Parameter]:
+    def parameters(self) -> List[Parameter]:
         x = self.id
         return parameter_cache
 
