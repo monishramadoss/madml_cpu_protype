@@ -49,3 +49,32 @@ class ReLU(Module):
               ' output:', y.host_data.max(), 'g', y.gradient.host_data.max())
         print('\tmin input:', x.host_data.min(), 'g', x.gradient.host_data.min(),
               ' output:', y.host_data.min(), 'g', y.gradient.host_data.min())
+
+
+class Dropout(Module):
+    __constants__ = ['prob']
+    prob: float
+
+    def __init__(self, probability: float = 0.1, seed: int = None) -> None:
+        super(Dropout, self).__init__()
+        if seed:
+            np.random.seed(seed)
+        self.prob = probability
+        self.mask = None
+
+    def forward_cpu(self, x: tensor) -> tensor:
+        y = zeros_like(x)
+        self.mask = tensor(np.random.rand(*x.shape), x.shape)
+        self.mask.host_data = self.mask.host_data < self.prob
+        tmp = x.host_data / (1 - self.prob)
+        tmp[self.mask.host_data] = 0
+        self.cache = [x, y]
+        return y
+
+    def backward_cpu(self) -> tensor:
+        x, y = self.cache
+        dx, dy = x.gradient, y.gradient
+        dx = dy / (1 - self.prob)
+        dx[self.mask.host_data] = 0
+        x.gradient = dx
+        return x

@@ -73,10 +73,10 @@ class CrossEntropyLoss(_WeightedLoss):
     ignore_index: int
 
     def __init__(self, weight=None, size_average=None, ignore_index: int = None,
-                 reduce=None, reduction: str = 'mean') -> None:
+                 reduce=None, reduction: str = 'mean', with_logits: bool = False) -> None:
         super(CrossEntropyLoss, self).__init__(weight, size_average, reduce, reduction)
         self.ignore_index = ignore_index
-
+        self.with_logits = with_logits
         self.batchsize = 1
 
     def forward_cpu(self, logit: tensor, target: tensor) -> tensor:
@@ -86,7 +86,8 @@ class CrossEntropyLoss(_WeightedLoss):
         C = logit.shape[1]
         x = logit.host_data
         t = target.host_data
-
+        if self.with_logits:
+            t = target.onehot()
         max_x = np.max(x, axis=1, keepdims=True)
         exp_x = np.exp(x - max_x)
         p = exp_x / np.sum(exp_x, axis=1, keepdims=True)
@@ -118,7 +119,7 @@ class CrossEntropyLoss(_WeightedLoss):
         elif self.reduction == 'sum':
             loss = np.sum(loss)
         reg = self.regularize()
-        self.loss.host_data = loss + reg
+        self.loss.host_data = (loss + reg) / self.batchsize
         self.cache = [logit, target, p]
         self.losses.append((loss, reg))
         return self.loss
@@ -127,14 +128,8 @@ class CrossEntropyLoss(_WeightedLoss):
         x, t, p = self.cache
         self.visited[self.loss.id] = True
         self.visited[t.id] = True
-        t = t.host_data.reshape([x.shape[0], -1])
-        dx = p
-        for i in range(self.batchsize):
-            for d in range(t.shape[1]):
-                t_idx = int(t[i][d])
-                dx[i][t_idx] -= 1
 
-        dx /= self.batchsize
+        dx = (p - t) / self.batchsize
         x.gradient.host_data = dx
         return x
 

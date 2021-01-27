@@ -1,4 +1,4 @@
-from .activation import ReLU
+from .activation import ReLU, Dropout
 from .convolution import Conv1d, Conv2d, Conv3d
 from .linear import Linear
 from .loss import CrossEntropyLoss, MSELoss

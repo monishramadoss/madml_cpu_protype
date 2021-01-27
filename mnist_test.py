@@ -7,7 +7,7 @@ import numpy as np
 
 import madml
 import madml.nn as nn
-import madml.optimizer as optimzer
+import madml.optimizer as optimizer
 
 filename = [["training_images", "train-images-idx3-ubyte.gz"],
             ["test_images", "t10k-images-idx3-ubyte.gz"],
@@ -115,7 +115,7 @@ def cnn_train_loop(model_class=cnn_mnist_model):
     t_x = madml.tensor(x)
     t_y = madml.tensor(y).onehot()
     loss_fn = nn.MSELoss()
-    optim = optimzer.Adam(model.parameters(), lr=1e-2)
+    optim = optimizer.Adam(model.parameters(), lr=1e-2)
     for i in range(10):
         optim.zero_grad()
         logit = model(t_x)
@@ -144,10 +144,10 @@ def dnn_train_loop(model_class=dnn_mnist_model):
     x = x.reshape((-1, batchsize, 28 * 28))
     y = y.reshape((-1, batchsize, 1))
 
-    t_x = madml.tensor(x/1.)
+    t_x = madml.tensor(x / 1.)
     t_y = madml.tensor(y).onehot()
     loss_fn = nn.MSELoss()
-    optim = optimzer.Adam(model.parameters(), lr=5e-3)
+    optim = optimizer.Adam(model.parameters(), lr=5e-3)
     for _ in range(epochs):
         for i in range(x.shape[0]):
             optim.zero_grad()
@@ -156,16 +156,17 @@ def dnn_train_loop(model_class=dnn_mnist_model):
             loss.backward()
             optim.step()
             exit_statement = (((loss.host_data < .01).all() or
-                          (np.abs(loss.host_data) == np.inf) or
-                          (loss.host_data == np.nan)) and (i != 0)) or i+1 == x.shape[0]
+                               (np.abs(loss.host_data) == np.inf) or
+                               (loss.host_data == np.nan)) and (i != 0)) or i + 1 == x.shape[0]
+            break
+            # if exit_statement:
+            #     for n in range(batchsize):
+            #         print('logit', logit.host_data[n].tolist(), end=': ')
+            #         print('target', t_y.host_data[n].tolist())
+            #     break
+            # else:
+            #     print('===', i, logit.shape, loss.host_data, loss_fn.accuracy())
 
-            if exit_statement:
-                for n in range(batchsize):
-                    print('logit', logit.host_data[n].tolist(), end=': ')
-                    print('target', t_y.host_data[n].tolist())
-                break
-            else:
-                print('===', i, logit.shape, loss.host_data, loss_fn.accuracy())
 
-
-dnn_train_loop()
+if __name__ == '__main__':
+    dnn_train_loop()

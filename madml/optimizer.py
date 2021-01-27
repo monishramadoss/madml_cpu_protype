@@ -66,7 +66,6 @@ class SGD(Optimizer):
             for p in self.params:
                 p.optimizer_stuff = [tensor([0.0 for _ in range(p.param.size)], p.param.shape, requires_grad=nesterov)]
 
-
     def step(self, closure=None) -> None:
         for p in self.params:
             p.param.reset_shape()
@@ -264,7 +263,7 @@ class Nadam(Optimizer):
 
             w = self.defaults['lr'] / (np.sqrt(r_k_hat) + self.defaults['eps'])
             w *= self.defaults['betas'][0] * m_k_hat + (1 - self.defaults['betas'][0]) / (
-                        1 - self.defaults['betas'][8] ** self.counter)
+                    1 - self.defaults['betas'][8] ** self.counter)
             p.param.host_data -= w
 
             p.optimizer_stuff[0].host_data = m
