@@ -90,6 +90,7 @@ class CrossEntropyLoss(_WeightedLoss):
         if not self.with_logit:
             target = target.onehot(label_count=C)
             t = target.host_data
+
         max_x = np.max(x, axis=1, keepdims=True)
         exp_x = np.exp(x - max_x)
         p = exp_x / np.sum(exp_x, axis=1, keepdims=True)
@@ -121,6 +122,7 @@ class CrossEntropyLoss(_WeightedLoss):
         elif self.reduction == 'sum':
             loss = np.sum(loss)
         reg = self.regularize()
+
         self.loss.host_data = (loss + reg) / self.batchsize
         self.cache = [logit, target, p]
         self.losses.append((loss, reg))
