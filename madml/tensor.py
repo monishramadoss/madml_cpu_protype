@@ -4,7 +4,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import struct
-from typing import List, Union
+from typing import List, Union, Optional
 
 import numpy as np
 
@@ -57,7 +57,7 @@ class tensor(object):
         assert (self._host_memory.size == self.size)
 
     def __copy__(self):
-        new = tensor(self.hos, self.init_shape)
+        new = tensor(self._host_memory, self.init_shape)
         new._grad = self._grad
         return new
 
@@ -76,7 +76,7 @@ class tensor(object):
     def __getitem__(self, idx: int):
         assert (self.shape[0] > idx)
         new_data = self._host_memory[idx]
-        new_shape = self.shape[:idx]
+        new_shape = self.shape[1:]
         return tensor(new_data, new_shape)
 
     def __setitem__(self, key: int, value) -> None:
@@ -144,9 +144,9 @@ class tensor(object):
             self._grad.reshape(self.init_shape)
 
     def flatten(self) -> None:
-        self.reshape([self.shape[0], -1])
+        self._host_memory = self._host_memory.flatten()
         if self._grad is not None:
-            self._grad.reshape(self.init_shape)
+            self._grad._host_memory = self._grad._host_memory.flatten()
 
     def transpose(self, axis: List[int]) -> None:
         self._host_memory = self._host_memory.transpose(axis)
@@ -156,12 +156,18 @@ class tensor(object):
         if self._grad is not None:
             self.gradient.host_data = np.zeros_like(self.gradient.host_data)
 
-    def onehot(self):
-        _max = (np.max(self._host_memory) + 1).astype(int)
+    def onehot(self, label_count: Optional[int] = -1):
+        if label_count > 0:
+            _max = label_count
+        else:
+            _max = (np.max(self._host_memory) + 1).astype(int)
         y = np.zeros([self._host_memory.size, _max])
-        self._host_memory = self._host_memory.reshape(self.size)
+        self._host_memory = self._host_memory.flatten()
         for i in range(self.size):
             y[i][self._host_memory[i].astype(int)] = 1
         self._host_memory = self._host_memory.reshape(self.init_shape)
-        y = y.reshape(self.init_shape[:-1] + [_max])
+        if self.init_shape[-1] == 1:
+            y = y.reshape(self.init_shape[:-1] + [_max])
+        else:
+            y = y.reshape(self.init_shape + [_max])
         return tensor(y, y.shape)

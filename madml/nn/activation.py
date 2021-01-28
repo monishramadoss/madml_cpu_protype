@@ -40,6 +40,8 @@ class ReLU(Module):
         dx, dy = x.gradient, y.gradient
         arr = dy.host_data.reshape(x.shape) * tmp
         x.gradient.host_data = arr.reshape(x.shape)
+        if not self.inplace:
+            y.zero_grad()
         return x
 
     def print_l(self) -> None:

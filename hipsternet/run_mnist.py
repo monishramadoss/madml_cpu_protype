@@ -3,6 +3,7 @@ import sys
 import hipsternet.input_data as input_data
 import hipsternet.neuralnet as nn
 from hipsternet.solver import *
+import numpy as np
 
 n_iter = 1000
 alpha = 1e-3
@@ -13,7 +14,9 @@ print_after = 100
 p_dropout = 0.8
 loss = 'cross_ent'
 nonlin = 'relu'
-solver = 'sgd'
+solver = 'adam'
+
+np.random.seed(seed=1024)
 
 
 def prepro(X_train, X_val, X_test):

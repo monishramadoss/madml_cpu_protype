@@ -86,8 +86,9 @@ class CrossEntropyLoss(_WeightedLoss):
         C = logit.shape[1]
         x = logit.host_data
         t = target.host_data
-        if self.with_logits:
-            t = target.onehot()
+        if not self.with_logits:
+            target = target.onehot(label_count=C)
+            t = target.host_data
         max_x = np.max(x, axis=1, keepdims=True)
         exp_x = np.exp(x - max_x)
         p = exp_x / np.sum(exp_x, axis=1, keepdims=True)
@@ -101,19 +102,19 @@ class CrossEntropyLoss(_WeightedLoss):
         elif self.ignore_index is not None:
             gather_weight = np.where(t == self.ignore_index, 0, 1).astype(dtype=np.float32)
 
-        if len(inp.shape) != 3:
-            inp = inp.reshape([N, C, -1])
-            t = t.reshape([N, -1])
-        D = inp.shape[2]
+        # if len(inp.shape) != 3:
+        #     inp = inp.reshape([N, C, -1])
+        #     t = t.reshape([N, C, -1])
+        # D = inp.shape[2]
+        #
+        # neg_gather_element_input = np.zeros((N, D), dtype=np.float32)
+        # for i in range(N):
+        #     for d in range(D):
+        #         if d != self.ignore_index:
+        #             idx = int(t[i][d])
+        #             neg_gather_element_input[i][d] = -inp[i][idx][d]
 
-        neg_gather_element_input = np.zeros((N, D), dtype=np.float32)
-        for i in range(N):
-            for d in range(D):
-                if t[i][d] != self.ignore_index:
-                    idx = int(t[i][d])
-                    neg_gather_element_input[i][d] = -inp[i][idx][d]
-
-        loss = neg_gather_element_input
+        loss = inp
         if self.reduction == 'mean':
             loss = np.mean(loss)
         elif self.reduction == 'sum':
@@ -128,10 +129,14 @@ class CrossEntropyLoss(_WeightedLoss):
         x, t, p = self.cache
         self.visited[self.loss.id] = True
         self.visited[t.id] = True
-
-        dx = (p - t) / self.batchsize
+        dx = (p - t.host_data) / self.batchsize
         x.gradient.host_data = dx
         return x
+
+    def accuracy(self):
+        x, t, p = self.cache
+        tmp = np.argmax(x.host_data, axis=1) - np.argmax(t.host_data, axis=1)
+        return (tmp.size - np.count_nonzero(tmp)) / x.size
 
 
 class MSELoss(_Loss):
@@ -141,7 +146,9 @@ class MSELoss(_Loss):
         super(MSELoss, self).__init__(size_average, reduce, reduction)
 
     def forward_cpu(self, logit: tensor, target: tensor) -> tensor:
-        assert (logit.shape == target.shape)
+        if logit.shape != target.shape:
+            raise ValueError("logit and target shapes must be the same got: {}, {}".format(logit.shape, target.shape))
+
         m = logit.shape[0]
         data_loss = 0.5 * (np.square(logit.host_data - target.host_data)).mean(axis=0)
 
@@ -165,4 +172,5 @@ class MSELoss(_Loss):
 
     def accuracy(self):
         x, t, m = self.cache
-        return np.square(x.host_data - t.host_data).mean()
+        tmp = np.argmax(x.host_data, axis=1) - np.argmax(t.host_data, axis=1)
+        return (x.host_data - t.host_data).sum()

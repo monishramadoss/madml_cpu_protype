@@ -41,6 +41,7 @@ class Linear(Module):
 
         self.weight.param.gradient.host_data = x.host_data.T @ dy.host_data
         x.gradient.host_data = dy.host_data @ self.weight.param.host_data.T
+        y.zero_grad()
         return x
 
     def print_l(self) -> None:
