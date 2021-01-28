@@ -74,10 +74,10 @@ class CrossEntropyLoss(_WeightedLoss):
     ignore_index: int
 
     def __init__(self, weight=None, size_average=None, ignore_index: int = None,
-                 reduce=None, reduction: str = 'mean', with_logits: bool = False) -> None:
+                 reduce=None, reduction: str = 'mean', with_logit: bool = False) -> None:
         super(CrossEntropyLoss, self).__init__(weight, size_average, reduce, reduction)
         self.ignore_index = ignore_index
-        self.with_logits = with_logits
+        self.with_logit = with_logit
         self.batchsize = 1
 
     def forward_cpu(self, logit: tensor, target: tensor) -> tensor:
@@ -87,7 +87,7 @@ class CrossEntropyLoss(_WeightedLoss):
         C = logit.shape[1]
         x = logit.host_data
         t = target.host_data
-        if not self.with_logits:
+        if not self.with_logit:
             target = target.onehot(label_count=C)
             t = target.host_data
         max_x = np.max(x, axis=1, keepdims=True)
@@ -95,13 +95,13 @@ class CrossEntropyLoss(_WeightedLoss):
         p = exp_x / np.sum(exp_x, axis=1, keepdims=True)
         inp = p
 
-        gather_weight = None
-        if self.weight is not None:
-            gather_weight = np.take(self.weight, t, mode='clip')
-            if self.ignore_index is not None:
-                gather_weight = np.where(t == self.ignore_index, 0, gather_weight).astype(dtype=np.float32)
-        elif self.ignore_index is not None:
-            gather_weight = np.where(t == self.ignore_index, 0, 1).astype(dtype=np.float32)
+        # gather_weight = None
+        # if self.weight is not None:
+        #     gather_weight = np.take(self.weight, t, mode='clip')
+        #     if self.ignore_index is not None:
+        #         gather_weight = np.where(t == self.ignore_index, 0, gather_weight).astype(dtype=np.float32)
+        # elif self.ignore_index is not None:
+        #     gather_weight = np.where(t == self.ignore_index, 0, 1).astype(dtype=np.float32)
 
         # if len(inp.shape) != 3:
         #     inp = inp.reshape([N, C, -1])
@@ -173,5 +173,5 @@ class MSELoss(_Loss):
 
     def accuracy(self):
         x, t, m = self.cache
-        tmp = np.argmax(x.host_data, axis=1) - np.argmax(t.host_data, axis=1)
+        # tmp = np.argmax(x.host_data, axis=1) - np.argmax(t.host_data, axis=1)
         return (x.host_data - t.host_data).sum()

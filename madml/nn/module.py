@@ -3,21 +3,19 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+from abc import ABC
 from typing import List, Optional
 
 from madml import tensor
 
-global execution_order
 global parameter_cache
-global module_cache
 
-module_cache = {}
 parameter_cache = []
-execution_order = []
+
 DEBUG = False
 
 
-class Parameter(object):
+class Parameter(object, ABC):
     param: tensor
     optimizer_stuff: Optional[List[tensor]]
     device: str
@@ -46,7 +44,6 @@ class Module(object):
         self.visited = {}
         self.id = id(self)
         self.y = None
-        module_cache[self.id] = self
         self.print_out_flag = False
 
     def forward(self, *args, **kwargs):
@@ -87,14 +84,13 @@ class Module(object):
             x.zero_grad()
 
         if not self.registered:
-            execution_order.append(self)
             self.registered = True
         # if isinstance(y, tensor):
         #      print('\t', y.shape, y.host_data.max(), y.host_data.min())
         return y
 
-    def parameters(self) -> List[Parameter]:
-        x = self.id
+    @staticmethod
+    def parameters() -> List[Parameter]:
         return parameter_cache
 
     def print_l(self):
