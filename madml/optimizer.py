@@ -1,12 +1,12 @@
 from collections import defaultdict
 from typing import Dict, List
+
 import numpy as np
 
 from madml import tensor
 from madml.nn import Parameter
-from .init import zeros_like
 
-DEBUG = True
+DEBUG = False
 
 
 def print_p(p: Parameter) -> None:

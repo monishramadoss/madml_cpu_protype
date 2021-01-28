@@ -1,9 +1,10 @@
 import sys
 
+import numpy as np
+
 import hipsternet.input_data as input_data
 import hipsternet.neuralnet as nn
 from hipsternet.solver import *
-import numpy as np
 
 n_iter = 1000
 alpha = 1e-3

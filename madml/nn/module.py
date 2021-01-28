@@ -3,9 +3,9 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from typing import List, Dict
+from typing import List, Optional
 
-from madml import tensor, zeros
+from madml import tensor
 
 global execution_order
 global parameter_cache
@@ -14,12 +14,12 @@ global module_cache
 module_cache = {}
 parameter_cache = []
 execution_order = []
-DEBUG = True
+DEBUG = False
 
 
 class Parameter(object):
     param: tensor
-    optimizer_stuff: List[tensor]
+    optimizer_stuff: Optional[List[tensor]]
     device: str
     shared_devices: bool
 

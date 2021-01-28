@@ -187,7 +187,7 @@ def identity_train_loop(model_class=identity_model):
         loss.backward()
         optim.step()
         print(logit.shape, loss.host_data, loss_fn.accuracy())
-    print()
+    print(logit.host_data)
 
 
 if __name__ == '__main__':

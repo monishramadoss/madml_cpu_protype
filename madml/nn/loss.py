@@ -3,7 +3,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from typing import List
+from abc import ABC
+from typing import List, Optional
 
 import numpy as np
 
@@ -32,8 +33,8 @@ def l2_reg(w: tensor, lam: float = 1e-3) -> float:
     return .5 * lam * np.sum(w.host_data * w.host_data)
 
 
-class _Loss(Module):
-    reduction: str
+class _Loss(Module, ABC):
+    reduction: Optional[str]
 
     def __init__(self, size_average=None, reduce=None, reduction: str = 'mean', backend=None) -> None:
         super(_Loss, self).__init__(backend)
@@ -62,7 +63,7 @@ class _Loss(Module):
         raise NotImplementedError
 
 
-class _WeightedLoss(_Loss):
+class _WeightedLoss(_Loss, ABC):
     def __init__(self, weight=None, size_average=None, reduce=None, reduction: str = 'mean') -> None:
         super(_WeightedLoss, self).__init__(size_average, reduce, reduction)
         self.weight = weight
@@ -142,7 +143,7 @@ class CrossEntropyLoss(_WeightedLoss):
 class MSELoss(_Loss):
     __constants__ = ['reduction']
 
-    def __init__(self, size_average=None, reduce=None, reduction: str = 'mean') -> tensor:
+    def __init__(self, size_average=None, reduce=None, reduction: str = 'mean') -> None:
         super(MSELoss, self).__init__(size_average, reduce, reduction)
 
     def forward_cpu(self, logit: tensor, target: tensor) -> tensor:

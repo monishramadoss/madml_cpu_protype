@@ -1,7 +1,11 @@
 # hipsternet
-All the hipster things in Neural Net in a single repo: hipster optimization algorithms, hispter regularizations, everything!
 
-Note, things will be added over time, so not all the hipsterest things will be here immediately. Also don't use this for your production code: use this to study and learn new things in the realm of Neural Net, Deep Net, Deep Learning, whatever.
+All the hipster things in Neural Net in a single repo: hipster optimization algorithms, hispter regularizations,
+everything!
+
+Note, things will be added over time, so not all the hipsterest things will be here immediately. Also don't use this for
+your production code: use this to study and learn new things in the realm of Neural Net, Deep Net, Deep Learning,
+whatever.
 
 ## What's in it?
 
@@ -60,10 +64,11 @@ Note, things will be added over time, so not all the hipsterest things will be h
 4. [Optional] To install Tensorflow: `chmod +x tensorflow.sh; ./tensorflow.sh`
 5. Do things with the code if you want to
 6. To run the example:
-  1. `python run_mnist.py {ff|cnn}`; `cnn` for convnet model, `ff` for the feed forward model
-  2. `python run_rnn.py {rnn|lstm|gru}`; `rnn` for vanilla RNN model, `lstm` for LSTM net model, `gru` for GRU net model
+1. `python run_mnist.py {ff|cnn}`; `cnn` for convnet model, `ff` for the feed forward model
+2. `python run_rnn.py {rnn|lstm|gru}`; `rnn` for vanilla RNN model, `lstm` for LSTM net model, `gru` for GRU net model
 7. Just close the terminal if you done (or `source deactivate`, not a fan though)
 
 ## What can I do with this?
 
-Do anything you want. I licensed this with Unlicense License <http://unlicense.org>, as I need to take a break of using WTFPL license.
+Do anything you want. I licensed this with Unlicense License <http://unlicense.org>, as I need to take a break of using
+WTFPL license.
