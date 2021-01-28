@@ -159,7 +159,7 @@ def dnn_train_loop(model_class=dnn_mnist_model):
     t_x = madml.tensor(x / 1.)
     t_y = madml.tensor(y).onehot(label_count=10)
     # loss_fn = nn.MSELoss()
-    loss_fn = nn.CrossEntropyLoss(with_logits=True)
+    loss_fn = nn.CrossEntropyLoss(with_logit=True)
     optim = optimizer.Adam(model.parameters(), lr=5e-3)
     for _ in range(epochs):
         for i in range(x.shape[0]):
