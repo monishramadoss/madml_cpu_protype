@@ -2,7 +2,7 @@
 
 Project for exascale data parallel and model parallel pipeline.
 
-Current state: Both Fwd & Bck Prop
+Current state: (Both Fwd & Bck Prop)
   - math needs to be checked
   - needs currerent queques 
   - missing Device IDs
