@@ -6,7 +6,7 @@ Project for exascale data parallel and model parallel training and infernece pip
   - **math needs to be checked**
   - needs currerent queques 
   - missing Device IDs
-
+  - Need to decide on conda or pip installations
 
 ## Primary OBj:
 - vulkan impl of python fns, followed by performance, device, and nodal optimizations
