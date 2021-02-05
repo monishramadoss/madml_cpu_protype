@@ -9,6 +9,7 @@ import numpy as np
 
 from madml import tensor, zeros, kaiming_uniform
 from .module import Module, Parameter
+from .testing import fc_forward, fc_backward
 
 
 class Linear(Module):
@@ -42,7 +43,7 @@ class Linear(Module):
 
         self.weight.param.gradient.host_data = x.host_data.T @ dy.host_data
         x.gradient.host_data = dy.host_data @ self.weight.param.host_data.T
-        y.zero_grad()
+        # y.zero_grad()
         return x
 
     def print_l(self) -> None:
@@ -54,11 +55,13 @@ class Linear(Module):
         print('\tmin input:', x.host_data.min(), 'g', x.gradient.host_data.min(),
               ' weight:', self.weight.param.host_data.min(), 'g', self.weight.param.gradient.host_data.min(),
               ' output:', y.host_data.max(), 'g', y.gradient.host_data.min())
+        self.test()
 
     def test(self):
         x, y = self.cache
-        import hipsternet.hipsternet.layer as hl
-        y_hat, c = hl.fc_forward(x.host_data, self.weight.param.host_data, self.bias.param.host_data)
-        dy_hat = hl.fc_backward(x.gradient.host_data, c)
-        y.host_data == y_hat
-        assert (dy_hat == y.gradient.host_data)
+        _y, c = fc_forward(x.host_data, self.weight.param.host_data, self.bias.param.host_data)
+        _dx, _dw, _db = fc_backward(y.gradient.host_data, c)
+        assert ((y.host_data == _y).all())
+        assert ((_dx == x.gradient.host_data).all())
+        assert ((_dw == self.weight.param.gradient.host_data).all())
+        assert ((_db == self.bias.param.gradient.host_data).all())

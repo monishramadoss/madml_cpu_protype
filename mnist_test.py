@@ -173,7 +173,7 @@ def dnn_train_loop(model_class=dnn_mnist_model):
 
 def identity_train_loop(model_class=identity_model):
     model = model_class()
-    x = np.random.randn(2, 32)
+    x = np.ones((2, 32))
     t_x = madml.tensor(x)
     t_y = madml.tensor(x.copy())
     loss_fn = nn.MSELoss()

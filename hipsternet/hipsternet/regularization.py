@@ -1,4 +1,4 @@
-import hipsternet.constant as c
+import constant as c
 import numpy as np
 
 

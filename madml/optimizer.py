@@ -120,8 +120,8 @@ class Adam(Optimizer):
             m = p.optimizer_stuff[0].host_data
             r = p.optimizer_stuff[1].host_data
 
-            m = exp_running_avg(m, p.param.host_data, self.defaults['betas'][0])
-            r = exp_running_avg(r, p.param.host_data ** 2, self.defaults['betas'][1])
+            m = exp_running_avg(m, p.param.gradient.host_data, self.defaults['betas'][0])
+            r = exp_running_avg(r, p.param.gradient.host_data ** 2, self.defaults['betas'][1])
 
             m_k_hat = m / (1. - self.defaults['betas'][0] ** self.counter)
 
@@ -132,7 +132,7 @@ class Adam(Optimizer):
 
             else:
                 r_k_hat = r / (1. - self.defaults['betas'][1] ** self.counter)
-                p.param.host_data -= self.defaults['lr'] * m_k_hat / np.sqrt(r_k_hat) + self.defaults['eps']
+                p.param.host_data -= self.defaults['lr'] * m_k_hat / (np.sqrt(r_k_hat) + self.defaults['eps'])
 
             p.optimizer_stuff[0].host_data = m
             p.optimizer_stuff[1].host_data = r

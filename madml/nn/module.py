@@ -3,7 +3,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from abc import ABC
+
 from typing import List, Optional
 
 from madml import tensor
@@ -12,10 +12,10 @@ global parameter_cache
 
 parameter_cache = []
 
-DEBUG = False
+DEBUG = True
 
 
-class Parameter(object, ABC):
+class Parameter(object):
     param: tensor
     optimizer_stuff: Optional[List[tensor]]
     device: str

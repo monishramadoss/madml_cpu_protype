@@ -1,7 +1,7 @@
-import hipsternet.layer as l
-import hipsternet.loss as loss_fun
-import hipsternet.regularization as reg
-import hipsternet.utils as util
+import layer as l
+import loss as loss_fun
+import regularization as reg
+import utils as util
 import numpy as np
 
 

@@ -1,7 +1,7 @@
 import copy
 
-import hipsternet.constant as c
-import hipsternet.utils as util
+import constant as c
+import utils as util
 import numpy as np
 from sklearn.utils import shuffle as skshuffle
 
@@ -192,8 +192,8 @@ def adam(nn, X_train, y_train, val_set=None, alpha=0.001, mb_size=256, n_iter=20
             M[k] = util.exp_running_avg(M[k], grad[k], beta1)
             R[k] = util.exp_running_avg(R[k], grad[k] ** 2, beta2)
 
-            m_k_hat = M[k] / (1. - beta1 ** (t))
-            r_k_hat = R[k] / (1. - beta2 ** (t))
+            m_k_hat = M[k] / (1. - beta1 ** t)
+            r_k_hat = R[k] / (1. - beta2 ** t)
 
             nn.model[k] -= alpha * m_k_hat / (np.sqrt(r_k_hat) + c.eps)
 
