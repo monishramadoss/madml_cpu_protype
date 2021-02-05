@@ -10,7 +10,7 @@ import numpy as np
 
 from madml import tensor
 from .module import Module
-
+from .testing import dcross_entropy
 
 def _size(shape: List[int]) -> int:
     size = 1
@@ -58,6 +58,10 @@ class _Loss(Module, ABC):
     def print_l(self):
         super(_Loss, self).print_l()
         print('l', self.losses[-1][0].max(), 'r', self.losses[-1][1])
+        self.test()
+
+    def test(self):
+        pass
 
     def accuracy(self):
         raise NotImplementedError
@@ -136,10 +140,15 @@ class CrossEntropyLoss(_WeightedLoss):
         x.gradient.host_data = dx
         return x
 
+    def test(self):
+        x, t, p = self.cache
+        #_dx = dcross_entropy(x.host_data, t.host_data)
+        #assert ((x.gradient.host_data == _dx).all())
+
     def accuracy(self):
         x, t, p = self.cache
-        tmp = np.argmax(x.host_data, axis=1) - np.argmax(t.host_data, axis=1)
-        return (tmp.size - np.count_nonzero(tmp)) / x.size
+        tmp = np.argmax(x.host_data, axis=1) - np.argmax(t.host_data, axis=1) < 1e-2
+        return 1. - np.abs(tmp.mean())
 
 
 class MSELoss(_Loss):
@@ -175,5 +184,6 @@ class MSELoss(_Loss):
 
     def accuracy(self):
         x, t, m = self.cache
-        # tmp = np.argmax(x.host_data, axis=1) - np.argmax(t.host_data, axis=1)
-        return (x.host_data - t.host_data).sum()
+        tmp = np.argmax(x.host_data, axis=1) - np.argmax(t.host_data, axis=1) < 1e-2
+        return 1. - np.abs(tmp.mean())
+

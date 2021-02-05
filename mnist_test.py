@@ -149,18 +149,18 @@ def cnn_train_loop(model_class=cnn_mnist_model):
 
 def dnn_train_loop(model_class=dnn_mnist_model):
     model = model_class()
-    batchsize = 100
+    batchsize = 1000
     epochs = 10
 
     x, y, x1, y1 = load()
     x = x.reshape((-1, batchsize, 28 * 28))
     y = y.reshape((-1, batchsize, 1))
 
-    t_x = madml.tensor(x / 1.)
+    t_x = madml.tensor(x / 225.)
     t_y = madml.tensor(y).onehot(label_count=10)
-    # loss_fn = nn.MSELoss()
+    #loss_fn = nn.MSELoss()
     loss_fn = nn.CrossEntropyLoss(with_logit=True)
-    optim = optimizer.Adam(model.parameters(), lr=5e-3)
+    optim = optimizer.Adam(model.parameters(), lr=1e-3)
     for _ in range(epochs):
         for i in range(x.shape[0]):
             optim.zero_grad()
@@ -169,6 +169,13 @@ def dnn_train_loop(model_class=dnn_mnist_model):
             loss.backward()
             optim.step()
             print('===', i, logit.shape, loss.host_data, loss_fn.accuracy())
+            if i % 10 == 0:
+                print('logit [', end=' ')
+                for j in range(10):
+                    print(logit.host_data[0][j], end='] ' if j == 9 else ', ')
+                print(': target [', end=' ')
+                for j in range(10):
+                    print(t_y[i].host_data[0][j], end=']\n' if j == 9 else ', ')
 
 
 def identity_train_loop(model_class=identity_model):
@@ -191,4 +198,4 @@ def identity_train_loop(model_class=identity_model):
 
 
 if __name__ == '__main__':
-    identity_train_loop()
+    dnn_train_loop()
