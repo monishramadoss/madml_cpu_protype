@@ -16,7 +16,7 @@ class Linear(Module):
     in_features: int
     out_features: int
 
-    def __init__(self, in_features: int, out_features: int, bias: bool = False) -> None:
+    def __init__(self, in_features: int, out_features: int, bias: bool = True) -> None:
         super(Linear, self).__init__()
         self.in_features = in_features
         self.out_features = out_features
@@ -54,3 +54,11 @@ class Linear(Module):
         print('\tmin input:', x.host_data.min(), 'g', x.gradient.host_data.min(),
               ' weight:', self.weight.param.host_data.min(), 'g', self.weight.param.gradient.host_data.min(),
               ' output:', y.host_data.max(), 'g', y.gradient.host_data.min())
+
+    def test(self):
+        x, y = self.cache
+        import hipsternet.hipsternet.layer as hl
+        y_hat, c = hl.fc_forward(x.host_data, self.weight.param.host_data, self.bias.param.host_data)
+        dy_hat = hl.fc_backward(x.gradient.host_data, c)
+        y.host_data == y_hat
+        assert (dy_hat == y.gradient.host_data)
