@@ -10,7 +10,7 @@ import numpy as np
 from madml import tensor, zeros
 from .module import Module
 from .transform import vol2col
-
+from .testing import maxpool_forward, maxpool_backward
 
 def _dim_fix(arr, arg_arr, pi):
     def parse(x):
@@ -99,7 +99,7 @@ class _MaxPoolNd(Module):
         _ = self.kernel.backward_cpu()
         return x
 
-    def print_l(self):
+    def print_l(self) -> None:
         x, y, _ = self.cache
         super(_MaxPoolNd, self).print_l()
         print('\tmax input:', x.host_data.max(), 'g', x.gradient.host_data.max(),
@@ -107,6 +107,9 @@ class _MaxPoolNd(Module):
         print('\tmin input:', x.host_data.min(), 'g', x.gradient.host_data.min(),
               ' output:', y.host_data.min(), 'g', y.gradient.host_data.min())
 
+    def test(self) -> None:
+
+        return
 
 class MaxPool1d(_MaxPoolNd):
     kernel_size: int
@@ -126,7 +129,7 @@ class MaxPool1d(_MaxPoolNd):
         y.reshape([x.shape[0], y.shape[1], y.shape[-1]])
         return y
 
-    def backward_cpu(self):
+    def backward_cpu(self) -> tensor:
         x, y, _ = self.cache
         y.reshape([x.shape[0], y.shape[1], 1, 1, y.shape[2]])
         x.reshape([x.shape[0], x.shape[1], 1, 1, x.shape[2]])
@@ -155,7 +158,7 @@ class MaxPool2d(_MaxPoolNd):
         y.init_shape = y.shape
         return y
 
-    def backward_cpu(self):
+    def backward_cpu(self) -> tensor:
         x, y, _ = self.cache
         y.reshape([y.shape[0], y.shape[1], 1, y.shape[2], y.shape[3]])
         x.reshape([x.shape[0], x.shape[1], 1, x.shape[2], x.shape[3]])
@@ -163,6 +166,13 @@ class MaxPool2d(_MaxPoolNd):
         x.reset_shape()
         y.reset_shape()
         return x
+
+    def test(self) -> None:
+        x, y, mx = self.cache
+        _y, c = maxpool_forward(x.host_data, self.kernel_size[-1], self.stride[-1])
+        _dx = maxpool_backward(y.gradient.host_data, c)
+        assert ((y.host_data == _y).all())
+        assert ((_dx == x.gradient.host_data).all())
 
 
 class MaxPool3d(_MaxPoolNd):

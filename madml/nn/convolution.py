@@ -11,6 +11,7 @@ import numpy as np
 from madml import tensor, kaiming_uniform, zeros, ones, xavier_uniform
 from .module import Module, Parameter
 from .transform import vol2col
+from .testing import conv_forward, conv_backward
 
 
 def _dim_fix(arr, arg_arr, pi):
@@ -158,6 +159,9 @@ class ConvNd(Module):
               ' weight:', self.weight.param.host_data.min(), 'g', self.weight.param.gradient.host_data.min(),
               ' output:', y.host_data.max(), 'g', y.gradient.host_data.min())
 
+    def test(self) -> None:
+        return
+
 
 class Conv1d(ConvNd):
     def __init__(self,
@@ -170,7 +174,7 @@ class Conv1d(ConvNd):
                  groups: Union[int, List[int]] = 1,
                  bias: bool = False,
                  padding_mode: str = 'zeros',
-                 weight_init: str = 'kaiming_uniform'):
+                 weight_init: str = 'kaiming_uniform') -> None:
         super(Conv1d, self).__init__(1, in_channels, out_channels, kernel_size, stride, padding, dilation, False, 0,
                                      groups, bias, padding_mode, weight_init)
 
@@ -182,7 +186,7 @@ class Conv1d(ConvNd):
         y.init_shape = y.shape
         return y
 
-    def backward_cpu(self):
+    def backward_cpu(self) -> tensor:
         x, y = self.cache
         y.reshape([x.shape[0], y.shape[1], 1, 1, y.shape[2]])
         x.reshape([x.shape[0], x.shape[1], 1, 1, x.shape[2]])
@@ -203,7 +207,7 @@ class Conv2d(ConvNd):
                  groups: Union[int, List[int]] = 1,
                  bias: bool = False,
                  padding_mode: str = 'zeros',
-                 weight_init: str = 'xavier_uniform'):
+                 weight_init: str = 'xavier_uniform') -> None:
         super(Conv2d, self).__init__(2, in_channels, out_channels, kernel_size, stride, padding, dilation, False, 0,
                                      groups, bias, padding_mode, weight_init)
 
@@ -215,7 +219,7 @@ class Conv2d(ConvNd):
         y.init_shape = y.shape
         return y
 
-    def backward_cpu(self):
+    def backward_cpu(self) -> tensor:
         x, y = self.cache
         y.reshape([y.shape[0], y.shape[1], 1, y.shape[2], y.shape[3]])
         x.reshape([x.shape[0], x.shape[1], 1, x.shape[2], x.shape[3]])
@@ -223,6 +227,17 @@ class Conv2d(ConvNd):
         x.reset_shape()
         y.reset_shape()
         return x
+
+    def test(self):
+        x, y = self.cache
+        _y, c = conv_forward(x.host_data, self.weight.param.host_data, self.bias.param.host_data, self.stride[-1]
+                             , self.padding[-1])
+        _dx, _dw, _db = conv_backward(y.gradient.host_data, c)
+        assert ((y.host_data == _y).all())
+        assert ((_dx == x.gradient.host_data).all())
+        assert ((_dw == self.weight.param.gradient.host_data).all())
+        if self._use_bias:
+            assert ((_db == self.bias.param.gradient.host_data).all())
 
 
 class Conv3d(ConvNd):
