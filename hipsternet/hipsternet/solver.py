@@ -1,9 +1,10 @@
 import copy
 
-import constant as c
-import utils as util
 import numpy as np
 from sklearn.utils import shuffle as skshuffle
+
+import constant as c
+import utils as util
 
 
 def get_minibatch(X, y, minibatch_size, shuffle=True):

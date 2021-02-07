@@ -1,8 +1,9 @@
+import numpy as np
+
 import layer as l
 import loss as loss_fun
 import regularization as reg
 import utils as util
-import numpy as np
 
 
 class NeuralNet(object):

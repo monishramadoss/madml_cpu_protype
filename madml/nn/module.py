@@ -3,7 +3,6 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-
 from typing import List, Optional
 
 from madml import tensor
@@ -58,7 +57,7 @@ class Module(object):
         return x
 
     def forward_cpu(self, *args, **kwargs):
-        raise NotImplementedError
+        pass
 
     def backward_cpu(self):
         pass
@@ -100,4 +99,3 @@ class Module(object):
                 print(t.shape, end=' ')
         print()
         pass
-

@@ -42,7 +42,7 @@ class ReLU(Module):
         arr = dy.host_data.reshape(x.shape) * tmp
         x.gradient.host_data = arr.reshape(x.shape)
         if not self.inplace:
-            pass #y.zero_grad()
+            pass  # y.zero_grad()
         return x
 
     def print_l(self) -> None:
@@ -96,4 +96,3 @@ class Dropout(Module):
         _dx = dropout_backward(y.gradient.host_data, c)
         assert ((y.host_data == _y).all())
         assert ((_dx == x.gradient.host_data).all())
-

@@ -9,8 +9,9 @@ import numpy as np
 
 from madml import tensor, zeros
 from .module import Module
-from .transform import vol2col
 from .testing import maxpool_forward, maxpool_backward
+from .transform import vol2col
+
 
 def _dim_fix(arr, arg_arr, pi):
     def parse(x):
@@ -110,6 +111,7 @@ class _MaxPoolNd(Module):
     def test(self) -> None:
 
         return
+
 
 class MaxPool1d(_MaxPoolNd):
     kernel_size: int

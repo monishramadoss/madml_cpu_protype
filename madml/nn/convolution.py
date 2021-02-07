@@ -10,8 +10,8 @@ import numpy as np
 
 from madml import tensor, kaiming_uniform, zeros, ones, xavier_uniform
 from .module import Module, Parameter
-from .transform import vol2col
 from .testing import conv_forward, conv_backward
+from .transform import vol2col
 
 
 def _dim_fix(arr, arg_arr, pi):

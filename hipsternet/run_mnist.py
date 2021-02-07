@@ -1,7 +1,5 @@
 import sys
 
-import numpy as np
-
 import hipsternet.input_data as input_data
 import hipsternet.neuralnet as nn
 from hipsternet.solver import *

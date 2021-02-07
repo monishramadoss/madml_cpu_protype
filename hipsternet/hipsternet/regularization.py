@@ -1,5 +1,6 @@
-import constant as c
 import numpy as np
+
+import constant as c
 
 
 def l2_reg(W, lam=1e-3):

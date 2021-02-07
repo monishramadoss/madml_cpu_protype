@@ -10,7 +10,7 @@ import numpy as np
 
 from madml import tensor
 from .module import Module
-from .testing import dcross_entropy
+
 
 def _size(shape: List[int]) -> int:
     size = 1
@@ -142,8 +142,8 @@ class CrossEntropyLoss(_WeightedLoss):
 
     def test(self):
         x, t, p = self.cache
-        #_dx = dcross_entropy(x.host_data, t.host_data)
-        #assert ((x.gradient.host_data == _dx).all())
+        # _dx = dcross_entropy(x.host_data, t.host_data)
+        # assert ((x.gradient.host_data == _dx).all())
 
     def accuracy(self):
         x, t, p = self.cache
@@ -186,4 +186,3 @@ class MSELoss(_Loss):
         x, t, m = self.cache
         tmp = np.argmax(x.host_data, axis=1) - np.argmax(t.host_data, axis=1) < 1e-2
         return 1. - np.abs(tmp.mean())
-
