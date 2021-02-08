@@ -140,11 +140,11 @@ class ConvNd(Module):
             self.bias.param.gradient.host_data = np.sum(dy.host_data, axis=0)
 
         dy_reshaped = dy.host_data.transpose([1, 0, 2, 3, 4]).reshape(self.out_channels, -1)
-        self.weight.param.gradient.host_data = dy_reshaped @ self.col.host_data.T
+        self.weight.param.gradient.host_data = np.matmul(dy_reshaped, self.col.host_data.T)
         self.weight.param.gradient.reset_shape()
 
         w_reshaped = self.weight.param.host_data.reshape([self.out_channels, -1])
-        self.col.gradient.host_data = w_reshaped.T @ dy_reshaped
+        self.col.gradient.host_data = np.matmul(w_reshaped.T, dy_reshaped)
         _ = self.kernel.backward_cpu()
 
         return x

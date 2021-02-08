@@ -11,7 +11,7 @@ global parameter_cache
 
 parameter_cache = []
 
-DEBUG = True
+DEBUG = False
 
 
 class Parameter(object):
@@ -45,7 +45,7 @@ class Module(object):
         self.y = None
         self.print_out_flag = False
 
-    def forward(self, *args, **kwargs):
+    def forward(self, *args, **kwargs) -> tensor:
         return self.forward_cpu(*args, **kwargs)
 
     def backward(self):
@@ -56,10 +56,10 @@ class Module(object):
             x.reset_shape()
         return x
 
-    def forward_cpu(self, *args, **kwargs):
+    def forward_cpu(self, *args, **kwargs) -> tensor:
         pass
 
-    def backward_cpu(self):
+    def backward_cpu(self) -> tensor:
         pass
 
     def __call__(self, *args, **kwargs):

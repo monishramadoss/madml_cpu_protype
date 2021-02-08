@@ -6,6 +6,8 @@ from __future__ import unicode_literals
 import math
 import random
 from typing import List, Union
+import numpy as np
+from numba import njit
 
 from .tensor import tensor
 
@@ -18,7 +20,7 @@ def _size(shape: List[int]) -> int:
 
 
 def zeros(shape: List[int]) -> tensor:
-    data = [0.0 for _ in range(_size(shape))]
+    data = np.zeros(shape=shape)
     return tensor(data, shape)
 
 
@@ -27,7 +29,7 @@ def zeros_like(t: tensor) -> tensor:
 
 
 def ones(shape: List[int]) -> tensor:
-    data = [1.0 for _ in range(_size(shape))]
+    data = np.ones(shape=shape)
     return tensor(data, shape)
 
 

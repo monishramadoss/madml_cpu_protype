@@ -96,3 +96,5 @@ class Dropout(Module):
         _dx = dropout_backward(y.gradient.host_data, c)
         assert ((y.host_data == _y).all())
         assert ((_dx == x.gradient.host_data).all())
+
+

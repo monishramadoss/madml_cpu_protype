@@ -5,6 +5,7 @@ import unittest
 from urllib import request
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 import madml
 import madml.nn as nn
@@ -225,56 +226,7 @@ class TestModels(unittest.TestCase):
             def __init__(self):
                 super(identity_model, self).__init__()
                 self.fc1 = nn.Linear(32, 32)
-
-            def forward(self, x):
-                x = self.fc1(x)
-                return x
-
-        model = identity_model()
-        self.assertIsInstance(model, nn.Module)
-        x = np.ones((2, 32))
-        t_x = madml.tensor(x)
-        t_y = madml.tensor(x.copy())
-        loss_fn = nn.MSELoss()
-        optim = optimizer.Adam(model.parameters(), lr=1e-2)
-
-        for _ in range(100):
-            optim.zero_grad()
-            logit = model(t_x)
-            loss = loss_fn(logit, t_y)
-            loss.backward()
-            optim.step()
-        self.assertTrue(loss_fn.accuracy() > 0.9)
-
-    def test_spiral(self):
-
-        from numpy import pi
-        # import matplotlib.pyplot as plt
-
-        N = 400
-        theta = np.sqrt(np.random.rand(N)) * 2 * pi  # np.linspace(0,2*pi,100)
-        print(theta.shape)
-        r_a = 2 * theta + pi
-        data_a = np.array([np.cos(theta) * r_a, np.sin(theta) * r_a]).T
-        x_a = data_a + np.random.randn(N, 2)
-
-        r_b = -2 * theta - pi
-        data_b = np.array([np.cos(theta) * r_b, np.sin(theta) * r_b]).T
-        x_b = data_b + np.random.randn(N, 2)
-
-        res_a = np.append(x_a, np.zeros((N, 1)), axis=1)
-        res_b = np.append(x_b, np.ones((N, 1)), axis=1)
-        print(res_b.shape, res_a.shape)
-        res = np.append(res_a, res_b, axis=0)
-        np.random.shuffle(res)
-
-        np.savetxt("result.csv", res[0], delimiter=",", header="x,y,label", comments="", fmt='%.5f')
-
-        class identity_model(nn.Module):
-            def __init__(self):
-                super(identity_model, self).__init__()
-                self.fc1 = nn.Linear(2, 32)
-                self.fc2 = nn.Linear(32, 1)
+                self.fc2 = nn.Linear(32, 32)
 
             def forward(self, X):
                 X = self.fc1(X)
@@ -283,12 +235,9 @@ class TestModels(unittest.TestCase):
 
         model = identity_model()
         self.assertIsInstance(model, nn.Module)
-        x = res[..., :-1]
-        y = res[..., 2]
-        print(x.shape, y.shape)
+        x = np.ones((2, 32))
         t_x = madml.tensor(x)
-        t_y = madml.tensor(y)
-        t_y.reshape([800, 1])
+        t_y = madml.tensor(x.copy())
         loss_fn = nn.MSELoss()
         optim = optimizer.Adam(model.parameters(), lr=1e-2)
 
@@ -299,15 +248,89 @@ class TestModels(unittest.TestCase):
             loss.backward()
             optim.step()
             print('===', i, logit.shape, loss.host_data, loss_fn.accuracy())
-            if i % 10 == 0:
-                print('logit [', end=' ')
-                for j in range(2):
-                    print(logit.host_data[0][j], end='] ' if j == 1 else ', ')
-                print(': target [', end=' ')
-                for j in range(2):
-                    print(t_y[i].host_data[0][j], end=']\n' if j == 1 else ', ')
-
         self.assertTrue(loss_fn.accuracy() > 0.9)
+
+    def test_spiral(self):
+
+        from numpy import pi
+        # import matplotlib.pyplot as plt
+
+        N = 400
+        theta = np.sqrt(np.random.rand(N)) * 2 * pi  # np.linspace(0,2*pi,100)
+        r_a = 2 * theta + pi
+        data_a = np.array([np.cos(theta) * r_a, np.sin(theta) * r_a]).T
+        x_a = data_a + np.random.randn(N, 2)
+        res_a = np.append(x_a, np.zeros((N, 1)), axis=1)
+
+        r_b = -2 * theta - pi
+        data_b = np.array([np.cos(theta) * r_b, np.sin(theta) * r_b]).T
+        x_b = data_b + np.random.randn(N, 2)
+        res_b = np.append(x_b, np.ones((N, 1)), axis=1)
+
+        res = np.append(res_a, res_b, axis=0)
+        np.random.shuffle(res)
+
+        ax1 = plt.subplot(121)
+        ax1.margins(0.05)
+
+        ax1.scatter(x_a[:, 0], x_a[:, 1])
+        ax1.scatter(x_b[:, 0], x_b[:, 1])
+
+        # np.savetxt("result.csv", res[0], delimiter=",", header="x,y,label", comments="", fmt='%.5f')
+
+        class spiral_model(nn.Module):
+            def __init__(self):
+                super(spiral_model, self).__init__()
+                self.fc1 = nn.Linear(2, 16)
+                self.fc2 = nn.Linear(16, 16)
+                self.fc3 = nn.Linear(16, 2)
+                self.tanh1 = nn.tanh()
+                self.tanh2 = nn.tanh()
+                self.sig = nn.ReLU()
+
+            def forward(self, X):
+                X = self.fc1(X)
+                X = self.tanh1(X)
+                X = self.fc2(X)
+                X = self.tanh2(X)
+                X = self.fc3(X)
+                X = self.sig(X)
+                return X
+
+        model = spiral_model()
+        self.assertIsInstance(model, nn.Module)
+        x = res[..., :-1]
+        y = res[..., 2]
+
+        t_x = madml.tensor(x)
+        t_y = madml.tensor(y)
+        t_y = t_y.onehot(2)
+        t_y.reshape([800, 2])
+
+        loss_fn = nn.CrossEntropyLoss(with_logit=True)
+        # loss_fn = nn.MSELoss()
+        optim = optimizer.Adam(model.parameters(), lr=1e-2)
+        logits = None
+        for i in range(100):
+            optim.zero_grad()
+            logit = model(t_x)
+            logits = logit.host_data
+            loss = loss_fn(logit, t_y)
+            loss.backward()
+            optim.step()
+            print('===', i, logit.shape, loss.host_data)
+
+        logits = np.argmax(logits, axis=-1)
+
+        result = res[:, :-1]
+        ax2 = plt.subplot(122)
+        ax2.scatter(result[logits == 0.][:, 0], result[logits == 0.][:, 1])
+        ax2.scatter(result[logits == 1.][:, 0], result[logits == 1.][:, 1])
+        #plt.savefig('input_output.png')
+
+        acc = (logits - y).mean()
+        print(1.-acc)
+        self.assertTrue(1.0 - acc > 0.9)
 
 
 if __name__ == '__main__':
