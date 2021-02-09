@@ -1,4 +1,4 @@
-# madml_python
+# MADML
 
 Project for exascale data parallel and model parallel training and infernece pipeline.
 
