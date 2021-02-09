@@ -144,9 +144,10 @@ class tensor(object):
             self._grad.reshape(self.init_shape)
 
     def flatten(self) -> None:
-        self._host_memory = self._host_memory.flatten()
+        self._host_memory = self._host_memory.reshape([self.shape[0], -1])
         if self._grad is not None:
-            self._grad._host_memory = self._grad._host_memory.flatten()
+            self._grad.host_data = self._grad.host_data.reshape([self.shape[0], -1])
+        self.shape = list(self._host_memory.shape)
 
     def transpose(self, axis: List[int]) -> None:
         self._host_memory = self._host_memory.transpose(axis)

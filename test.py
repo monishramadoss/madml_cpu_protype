@@ -11,6 +11,8 @@ import madml
 import madml.nn as nn
 import madml.optimizer as optimizer
 
+BATCHSIZE = 100
+
 
 class TestModules(unittest.TestCase):
     def test_tensor(self):
@@ -142,7 +144,7 @@ def load_mnist():
 
 
 def train_loop(model, loss_fn, optim, t_x, t_y):
-    for _ in range(100):
+    for _ in range(10):
         for i in range(t_x.shape[0]):
             optim.zero_grad()
             logit = model(t_x[i])
@@ -150,13 +152,23 @@ def train_loop(model, loss_fn, optim, t_x, t_y):
             loss.backward()
             optim.step()
             print('===', i, logit.shape, loss.host_data, loss_fn.accuracy())
-            if i % 10 == 0:
+            if i % 20 == 0 and i != 0:
                 print('logit [', end=' ')
                 for j in range(10):
                     print(logit.host_data[0][j], end='] ' if j == 9 else ', ')
                 print(': target [', end=' ')
                 for j in range(10):
                     print(t_y[i].host_data[0][j], end=']\n' if j == 9 else ', ')
+
+
+def test_loop(model: nn.Module, t_x: madml.tensor, t_y: madml.tensor):
+    accuracies = list()
+    for i in range(t_x.shape[0]):
+        logits = model(t_x[i])
+        logits = np.argmax(logits.host_data, axis=-1)
+        target = np.argmax(t_y[i].host_data)
+        accuracies.append(1.0 - (logits - target).mean())
+    return accuracies
 
 
 class TestModels(unittest.TestCase):
@@ -176,7 +188,7 @@ class TestModels(unittest.TestCase):
                 self.relu4 = nn.ReLU()
 
             def forward(self, X):
-                X = self.conv1(X)  # 32 x 28 x 28
+                X = self.conv1(X)
                 X = self.relu1(X)
                 X = self.pool(X)  # 32 x 14 x 14
                 X = self.conv2(X)  # 46 x 12 x 12
@@ -190,36 +202,61 @@ class TestModels(unittest.TestCase):
                 return X
 
         x, y, tx, ty = load_mnist()
+        x = x.reshape((-1, BATCHSIZE, 1, 28, 28))
+        y = y.reshape((-1, BATCHSIZE, 1))
+        tx = tx.reshape((-1, 1, 1, 28, 28))
+        ty = ty.reshape((-1, 1, 1))
+
         model = cnn_mnist_model()
         self.assertIsInstance(model, nn.Module)
+
+        t_x = madml.tensor(x / 225.)
+        t_y = madml.tensor(y).onehot(label_count=10)
+        # loss_fn = nn.MSELoss()
+        loss_fn = nn.CrossEntropyLoss(with_logit=True)
+        optim = optimizer.Adam(model.parameters(), lr=1e-3)
+        train_loop(model, loss_fn, optim, t_x, t_y)
+
+        test_x = madml.tensor(tx / 255.)
+        test_y = madml.tensor(ty)
+        acc = test_loop(model, test_x, test_y)
+        print(sum(acc) / len(acc))
 
     def test_dnn(self):
         class dnn_mnist_model(nn.Module):
             def __init__(self):
                 super(dnn_mnist_model, self).__init__()
-                self.fc1 = nn.Linear(28 * 28, 1024)
-                self.fc2 = nn.Linear(1024, 1024)
-                self.fc3 = nn.Linear(1024, 512)
-                self.fc4 = nn.Linear(512, 10)
+                self.fc1 = nn.Linear(28 * 28, 256)
+                self.fc2 = nn.Linear(256, 10)
                 self.relu1 = nn.ReLU()
                 self.relu2 = nn.ReLU()
-                self.relu3 = nn.ReLU()
-                self.relu4 = nn.ReLU()
 
             def forward(self, X):
                 X = self.fc1(X)
                 X = self.relu1(X)
                 X = self.fc2(X)
                 X = self.relu2(X)
-                X = self.fc3(X)
-                X = self.relu3(X)
-                X = self.fc4(X)
-                X = self.relu4(X)
                 return X
 
         x, y, tx, ty = load_mnist()
+        x = x.reshape((-1, BATCHSIZE, 28 * 28))
+        y = y.reshape((-1, BATCHSIZE, 1))
+        tx = tx.reshape((-1, 1, 28 * 28))
+        ty = ty.reshape((-1, 1, 1))
+
         model = dnn_mnist_model()
         self.assertIsInstance(model, nn.Module)
+        t_x = madml.tensor(x / 225.)
+        t_y = madml.tensor(y).onehot(label_count=10)
+        # loss_fn = nn.MSELoss()
+        loss_fn = nn.CrossEntropyLoss(with_logit=True)
+        optim = optimizer.Adam(model.parameters(), lr=1e-3)
+        train_loop(model, loss_fn, optim, t_x, t_y)
+
+        test_x = madml.tensor(tx / 255.)
+        test_y = madml.tensor(ty)
+        acc = test_loop(model, test_x, test_y)
+        print(sum(acc) / len(acc))
 
     def test_identity(self):
         class identity_model(nn.Module):
@@ -326,10 +363,10 @@ class TestModels(unittest.TestCase):
         ax2 = plt.subplot(122)
         ax2.scatter(result[logits == 0.][:, 0], result[logits == 0.][:, 1])
         ax2.scatter(result[logits == 1.][:, 0], result[logits == 1.][:, 1])
-        #plt.savefig('input_output.png')
+        # plt.savefig('input_output.png')
 
         acc = (logits - y).mean()
-        print(1.-acc)
+        print(1. - acc)
         self.assertTrue(1.0 - acc > 0.9)
 
 
