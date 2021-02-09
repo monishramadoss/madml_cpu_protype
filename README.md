@@ -4,7 +4,7 @@ Project for exascale data parallel and model parallel training and infernece pip
 
 ## Current state: (Both Fwd & Bck Prop)
 
-- **math needs to be checked**
+- **Convergence on identity and spiral datasets**
 - needs currerent queques
 - missing Device IDs
 - Need to decide on conda or pip installations
